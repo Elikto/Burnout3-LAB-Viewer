@@ -52,8 +52,8 @@ jobs:
                   raise SystemExit('Unsafe browser JS feature: '+banned)
           if 'github.com/login' not in js or 'issues/new?' not in js:
               raise SystemExit('GitHub-authenticated prompt handoff missing')
-          if 'crypto.subtle.decrypt' not in js or 'fetch("./public-status.json"' not in js:
-              raise SystemExit('Live dashboard status or private archival decrypt missing')
+          if 'fetch("./public-conversations.json"' not in js or 'fetch("./public-status.json"' not in js:
+              raise SystemExit('Public conversation and status loading missing')
           if 'window.open(url,' not in js:
               raise SystemExit('No actual authenticated GitHub workflow handoff')
           status=json.loads(Path('public-status.json').read_text(encoding='utf-8'))
