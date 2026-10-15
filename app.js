@@ -129,29 +129,26 @@ async function loadPublicStatus() {
     publicStatus=null;
   }
   renderHome();
-  if(archive)renderUnlockedHome();
   if (safeProject(activeView)) renderProgressView(activeView);
 }
 function renderHome() {
   const status=publicStatus;
-  $("metric-sync").textContent=shortDate(status?.generated_at);
-  $("snapshot-label").textContent=status ?
-    "Sauvegarde du "+formatDate(status.generated_at) :
-    "Aucun état public synchronisé";
+  const fresh=Boolean(status)&&!isStale(status.generated_at);
+  $("snapshot-label").textContent=status
+    ? "Dernière synchronisation : "+formatDate(status.generated_at)+(fresh?"":" · données anciennes")
+    : "Dernière synchronisation : en attente";
   $("sidebar-status").textContent=status ?
-    (isStale(status.generated_at)?"Dernier état possiblement ancien":"Dernière copie disponible"):
+    (fresh?"Dernière copie disponible":"Dernier état possiblement ancien"):
     "En attente des premières données";
-  $("sync-dot").className="dot"+(status?(isStale(status.generated_at)?" stale":" ready"):"");
-  const projects=["hd","pc"].map(id=>status?.projects[id]);
-  $("metric-done").textContent=status ?
-    String(projects.reduce((sum,p)=>sum+(p?.tasks.filter(t=>t.status==="completed").length||0),0)):"—";
-  $("metric-events").textContent=status ?
-    String(projects.reduce((sum,p)=>sum+(p?.latest.length||0),0)):"—";
+  $("sync-dot").className="dot"+(status?(fresh?" ready":" stale"):"");
+  $("sync-dot-home").className="dot"+(status?(fresh?" ready":" stale"):"");
 
   const cards=document.createDocumentFragment();
   for(const id of ["hd","pc"]) {
     const project=status?.projects[id];
     const task=currentTask(project);
+    const pending=(project?.tasks||[]).filter(t=>t!==task && (t.status==="queued" || t.status==="active"));
+    const next=pending[0]||null;
     const progress=progressValue(task);
     const card=el("button","progress-card "+id);
     card.type="button";
@@ -160,52 +157,30 @@ function renderHome() {
     const identity=el("div","card-project");
     identity.append(el("span","",id.toUpperCase()),el("strong","",PROJECTS[id].title));
     top.append(identity,el("span","task-state",task?statusName(task.status):"En attente"));
-    const title=el("div","task-name",task?task.title:"Aucune tâche vérifiée sur ce projet");
+    card.append(top,el("div","work-heading","TÂCHE SUIVIE"),
+      el("h2","task-name",task?task.title:"Aucune tâche reçue depuis Windows"));
     const caption=el("div","progress-caption");
-    caption.append(el("span","",progress===null?"Progression non mesurée":"Progression de cette tâche"),
+    caption.append(el("span","",progress===null?"Progression non mesurée":"Avancement de la tâche"),
       el("strong","",progress===null?"—":progress+" %"));
     const track=el("div","progress-track");
     const fill=el("div","progress-fill");
     fill.style.width=progress===null?"0%":progress+"%";
     track.append(fill);
-    const next=el("div","progress-next");
-    const upcoming=(project?.tasks||[]).filter(t=>t!==task&&t.status==="queued").map(t=>t.title);
-    if(task?.next && task.next!==task.title && !upcoming.includes(task.next))upcoming.unshift(task.next);
+    card.append(caption,track);
 
-    next.append(el("strong","","Prochaine tâche : "),
-      document.createTextNode(task?(nextTask(project,task)||"Aucune tâche suivante confirmée"):"Non définie"));
-    if(upcoming.length){
-      const heading=el("strong","upcoming-heading","À VENIR");
-      const list=el("ol","upcoming-list");
-      for(const name of upcoming.slice(0,6))list.append(el("li","",name));
-      next.append(heading,list);
-    }
-    card.append(top,title,caption,track,next,
-      el("div","progress-foot","Voir les actions effectuées, la dernière activité et les étapes restantes →"));
+    const upcoming=el("div","next-task-block");
+    upcoming.append(el("span","work-heading","PROCHAINE TÂCHE"),
+      el("strong","next-task-title",next?.title||"Aucune prochaine tâche confirmée"),
+      el("div","queue-count",pending.length+" tâche"+(pending.length>1?"s":"")+" en attente"));
+    const list=el("ol","upcoming-list");
+    for(const item of pending.slice(0,8))list.append(el("li","",item.title));
+    if(pending.length===0)list.append(el("li","queue-empty","File vide — aucune activité inventée"));
+    upcoming.append(list);
+    card.append(upcoming,el("div","progress-foot","Voir les actions effectuées et les étapes restantes →"));
     card.addEventListener("click",()=>openTaskDrawer(id,task));
     cards.append(card);
   }
   $("progress-grid").replaceChildren(cards);
-
-  const rows=[];
-  for(const id of ["hd","pc"]) {
-    for(const item of status?.projects[id]?.latest||[]) rows.push({...item,id});
-  }
-  rows.sort((a,b)=>(Date.parse(b.time)||0)-(Date.parse(a.time)||0));
-  const feed=document.createDocumentFragment();
-  if(!rows.length) {
-    feed.append(el("p","placeholder","Les conversations et le suivi des tâches seront visibles après la première synchronisation Windows."));
-  }
-  for(const item of rows.slice(0,12)) {
-    const row=el("article","activity-row");
-    const avatar=el("div","activity-avatar "+item.id,item.id.toUpperCase());
-    const body=el("div","activity-copy");
-    body.append(el("strong","",PROJECTS[item.id].title+" · "+labelRole(item.role)),
-      el("p","",item.summary),el("div","activity-meta",item.kind));
-    row.append(avatar,body,el("time","activity-time",shortDate(item.time)));
-    feed.append(row);
-  }
-  $("recent-feed").replaceChildren(feed);
 }
 function detailElement(projectId,task) {
   const container=el("div","task-details");
@@ -350,26 +325,6 @@ function renderConversation() {
   }
   $("conversation-stream").replaceChildren(frag);
 }
-function renderUnlockedHome() {
-  if(!archive)return;
-  const rows=[];
-  for(const p of archive.projects)for(const e of p.events) {
-    if(e&&typeof e.message==="string"&&ROLES.has(e.role))
-      rows.push({...e,id:p.id});
-  }
-  rows.sort((a,b)=>(Date.parse(b.time)||0)-(Date.parse(a.time)||0));
-  const feed=document.createDocumentFragment();
-  for(const item of rows.slice(0,12)) {
-    const row=el("article","activity-row");
-    const body=el("div","activity-copy");
-    body.append(el("strong","",PROJECTS[item.id].title+" · "+labelRole(item.role)),
-      el("p","",item.message.slice(0,500)),el("div","activity-meta","Extrait public de la conversation"));
-    row.append(el("div","activity-avatar "+item.id,item.id.toUpperCase()),
-      body,el("time","activity-time",shortDate(item.time)));
-    feed.append(row);
-  }
-  if(rows.length)$("recent-feed").replaceChildren(feed);
-}
 function openPrompt() {
   if(!safeProject(activeView)) {
     navigate("hd");
@@ -425,14 +380,11 @@ async function loadPublicArchive(){
        doc.projects.length!==2||doc.projects[0]?.id!=="hd"||doc.projects[1]?.id!=="pc")throw Error("invalid");
     archive=doc;
     renderConversation();
-    renderUnlockedHome();
   }catch(error){
     archive=null;renderConversation();
     console.warn("Burnout3 LAB: public conversations unavailable",error?.message||"unknown");
   }
 }
-const privacyNotice=document.querySelector(".privacy-note");
-if(privacyNotice)privacyNotice.textContent="Lecture libre : les conversations publiées sont accessibles sans compte ni clé. Seul l'envoi d'un prompt nécessite une connexion GitHub. Ne jamais inclure de secrets dans les messages publics.";
 navigate(viewFromHash());
 loadPublicStatus();
 loadPublicArchive();
