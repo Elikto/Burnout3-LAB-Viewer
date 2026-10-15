@@ -41,6 +41,12 @@ jobs:
           js=Path('app.js').read_text(encoding='utf-8')
           parser=Reader()
           parser.feed(source)
+          if 'overview-metrics' in source or 'id="recent-feed"' in source:
+              raise SystemExit('Homepage must not show four metric tiles or conversation feed')
+          if 'id="snapshot-label"' not in source or 'id="progress-grid"' not in source:
+              raise SystemExit('Homepage must show latest sync and two project queues')
+          if 'next-task-title' not in js or 'upcoming-list' not in js:
+              raise SystemExit('Next task and future tasks must be prominent')
           if any(tag in {'iframe','form','object','embed'} for tag,_ in parser.tags):
               raise SystemExit('Unapproved HTML execution surface')
           if any('src' in attrs and attrs['src'].startswith('http') for tag,attrs in parser.tags):
