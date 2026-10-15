@@ -7,8 +7,8 @@
   <meta name="color-scheme" content="dark">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <title>Burnout 3 LAB · Centre de contrôle des IA</title>
-  <link rel="stylesheet" href="./style.css">
-  <script src="./app.js?v=20261016-2" defer></script>
+  <link rel="stylesheet" href="./style.css?v=20261016-3">
+  <script src="./app.js?v=20261016-3" defer></script>
 </head>
 <body>
 <div class="layout">
@@ -42,28 +42,15 @@
 
     <main class="main">
       <section id="home-view" class="view">
-        <div class="page-intro">
-          <div>
-            <div class="eyebrow eyebrow-highlight">SUIVI DES DEUX PROJETS</div>
-            <h1>Vue d'<span>ensemble</span></h1>
-            <p>Progression vérifiée, dernières activités et échanges des agents. Les données proviennent des dernières sauvegardes et peuvent être anciennes si le PC est déconnecté.</p>
-          </div>
-          <div class="snapshot-label"><span class="dot"></span><span id="snapshot-label">Aucune télémétrie synchronisée</span></div>
+        <div class="home-intro">
+          <span class="eyebrow eyebrow-highlight">SUIVI DES AGENTS</span>
+          <h1>Progression des <span>projets</span></h1>
+          <p class="home-sync" aria-live="polite"><span id="sync-dot-home" class="dot"></span><span id="snapshot-label">Dernière synchronisation : en attente</span></p>
         </div>
-        <div class="overview-metrics">
-          <div class="metric"><small>Projets surveillés</small><strong>02</strong><span>Deux agents séparés</span></div>
-          <div class="metric"><small>Dernière synchronisation</small><strong id="metric-sync">—</strong><span>Instantané, pas présence réelle</span></div>
-          <div class="metric"><small>Tâches terminées</small><strong id="metric-done">—</strong><span>Dans le dernier état reçu</span></div>
-          <div class="metric"><small>Activité récente</small><strong id="metric-events">—</strong><span>Événements récapitulatifs publics</span></div>
-        </div>
-
-        <div class="section-title"><div><small>01 — TRAVAIL DES AGENTS</small><h2>Tâches et progression</h2></div><span>Cliquer pour voir les étapes</span></div>
         <div id="progress-grid" class="progress-grid">
-          <p class="placeholder">Chargement du dernier état des tâches…</p>
+          <p class="placeholder">Chargement du suivi des deux projets…</p>
         </div>
-        <div class="section-title"><div><small>02 — DERNIERS ÉCHANGES</small><h2>Activité des conversations</h2></div><span>Messages publics · conversations complètes dans chaque projet</span></div>
-        <div id="recent-feed" class="activity-list"><p class="placeholder">Aucune activité publique synchronisée pour le moment.</p></div>
-        <div class="privacy-note"><strong>Lecture publique :</strong> les conversations publiées sont accessibles sans connexion ni clé. Seul l'envoi d'un prompt demande une connexion GitHub et l'autorisation d'écrire dans le dépôt privé correspondant. Les messages publiés sont visibles par tous ; ne jamais y inclure de secrets.</div>
+        <p class="home-footnote">Les tâches sont traitées par les agents locaux suivant leurs cycles Windows. Dernière synchronisation ≠ activité en temps réel.</p>
       </section>
 
       <section id="project-view" class="view hidden" aria-label="Détails du projet">
