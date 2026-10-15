@@ -8,7 +8,7 @@
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
   <title>Burnout 3 LAB · Centre de contrôle des IA</title>
   <link rel="stylesheet" href="./style.css">
-  <script src="./app.js" defer></script>
+  <script src="./app.js?v=20261016-2" defer></script>
 </head>
 <body>
 <div class="layout">
@@ -61,7 +61,7 @@
         <div id="progress-grid" class="progress-grid">
           <p class="placeholder">Chargement du dernier état des tâches…</p>
         </div>
-        <div class="section-title"><div><small>02 — DERNIERS ÉCHANGES</small><h2>Activité des conversations</h2></div><span>Résumé public · échanges complets dans chaque projet</span></div>
+        <div class="section-title"><div><small>02 — DERNIERS ÉCHANGES</small><h2>Activité des conversations</h2></div><span>Messages publics · conversations complètes dans chaque projet</span></div>
         <div id="recent-feed" class="activity-list"><p class="placeholder">Aucune activité publique synchronisée pour le moment.</p></div>
         <div class="privacy-note"><strong>Confidentialité :</strong> le public voit seulement des résumés d'événements validés. Les textes intégraux des échanges restent dans une archive chiffrée que tu peux déverrouiller avec ta clé privée. L'authentification GitHub est requise pour proposer un nouveau prompt.</div>
       </section>
@@ -73,13 +73,11 @@
         </div>
         <div class="project-tabs"><button type="button" class="tab active" id="tab-messages">Conversation complète</button><button type="button" class="tab" id="tab-progress">Progression et actions</button></div>
         <section id="conversation-pane" class="conversation-pane">
-          <div class="conversation-toolbar"><div><strong id="conversation-heading">Conversation des agents</strong><p id="conversation-meta">Archive réelle et chiffrée</p></div><label class="search-label">Rechercher <input id="conversation-search" type="search" placeholder="Message ou identifiant…"></label></div>
+          <div class="conversation-toolbar"><div><strong id="conversation-heading">Conversation des agents</strong><p id="conversation-meta">Historique public sans authentification</p></div><label class="search-label">Rechercher <input id="conversation-search" type="search" placeholder="Message ou identifiant…"></label></div>
           <div id="locked-panel" class="locked-panel">
-            <div class="lock-symbol">⌑</div>
-            <h2>Déverrouiller l'historique intégral</h2>
-            <p>Le site est public, mais les messages complets restent chiffrés. Entre ta clé d'archive de 43 caractères ; elle est utilisée uniquement dans ton navigateur.</p>
-            <div class="unlock-form"><label class="sr-only" for="archive-key">Clé d'archive AES-256-GCM</label><input id="archive-key" type="password" autocomplete="off" minlength="43" maxlength="43" placeholder="Clé privée (43 caractères)"><button id="unlock-btn" type="button">Déverrouiller</button></div>
-            <p id="unlock-status" class="unlock-status" role="status" aria-live="polite">Aucune clé n'est envoyée à GitHub.</p>
+            <h2>Historique accessible sans connexion</h2>
+            <p>Les conversations apparaissent ici dès leur synchronisation depuis les agents Windows. Aucun mot de passe n'est requis pour les consulter.</p>
+            <p><a href="./public-conversations.json" target="_blank" rel="noopener noreferrer">Ouvrir les messages publiés au format JSON</a></p>
           </div>
           <div id="conversation-stream" class="conversation-stream hidden" aria-live="off"></div>
         </section>
