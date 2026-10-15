@@ -1,5 +1,16 @@
 # Burnout 3 LAB · Centre de contrôle des deux agents
 
+## Mode public sans authentification (16 octobre 2026)
+
+- **Lire** : les visiteurs ouvrent Burnout 3 HD ou Burnout 3 Remastered PC Edition sans connexion ni clé. Les conversations sont chargées depuis `public-conversations.json`.
+- **Écrire** : cliquer sur le bouton d'envoi ouvre GitHub ; seul un compte autorisé à déposer une issue dans le dépôt privé peut soumettre un prompt.
+- **Progression** : sous chaque barre, le tableau affiche la tâche en cours, la prochaine tâche et les tâches en attente réellement connues. Un clic présente les actions enregistrées.
+- **Publication** : `public-conversations.json` commence vide. Le PC Windows ne le remplit que si l'utilisateur a explicitement accepté de publier les conversations en clair avec `scripts/autoriser-conversations-publiques.ps1` dans le miroir privé HD.
+- **Confidentialité** : la publication publique peut être copiée et conservée par quiconque, y compris dans l'historique Git. Un masquage automatique de secrets est prévu, mais n'offre pas de garantie absolue. Ne pas partager de secrets dans les conversations des agents.
+
+Les explications ci-dessous sur le déverrouillage AES concernent **l'ancien mode** ou l'archive chiffrée conservée en parallèle. Elles ne s'appliquent plus à la lecture normale sur le site.
+
+
 Site public : https://elikto.github.io/Burnout3-LAB-Viewer/
 
 ## Fonctionnalités
