@@ -17,14 +17,12 @@ const PROJECTS = Object.freeze({
   }
 });
 const ROLES = new Set(["chatgpt", "qwen", "agent", "system"]);
-const AAD = new TextEncoder().encode("Burnout3-LAB/encrypted-offline-archive/v1");
 let publicStatus = null;
 let archive = null;
 let visibleMessageCount = 250;
 let activeView = "home";
 let activeTab = "messages";
 let selectedTask = null;
-let unlocking = false;
 
 function labelRole(role) {
   return {qwen:"Qwen · modèle local",chatgpt:"Consigne GitHub",
@@ -310,52 +308,15 @@ function renderProgressView(id) {
   }
   $("project-progress-content").replaceChildren(wrapper);
 }
-function b64urlToBytes(text) {
-  if (typeof text!=="string"||!/^[A-Za-z0-9_-]+$/.test(text)) throw Error("Encodage de l'archive invalide.");
-  const s=text.replace(/-/g,"+").replace(/_/g,"/");
-  const raw=atob(s+"=".repeat((4-s.length%4)%4));
-  return Uint8Array.from(raw,c=>c.charCodeAt(0));
-}
-async function decryptArchive(keyText) {
-  if(!/^[A-Za-z0-9_-]{43}$/.test(keyText)) throw Error("La clé doit contenir exactement 43 caractères.");
-  const response=await fetch("./latest.enc.json",{cache:"no-store",credentials:"omit"});
-  if(!response.ok)throw Error("Archive non disponible (HTTP "+response.status+").");
-  const envelope=await response.json();
-  if(!envelope||envelope.v!==1||envelope.alg!=="AES-256-GCM"||
-    envelope.compression!=="gzip"||typeof envelope.nonce!=="string"||
-    typeof envelope.ciphertext!=="string"||envelope.ciphertext.length>15_000_000) {
-    throw Error("Aucune sauvegarde chiffrée n'est encore disponible sur GitHub.");
-  }
-  const nonce=b64urlToBytes(envelope.nonce);
-  const key=b64urlToBytes(keyText);
-  if(nonce.length!==12||key.length!==32)throw Error("Clé ou archive incorrecte.");
-  const cryptoKey=await crypto.subtle.importKey("raw",key,{name:"AES-GCM"},false,["decrypt"]);
-  let compressed;
-  try {
-    compressed=await crypto.subtle.decrypt({name:"AES-GCM",iv:nonce,
-      additionalData:AAD,tagLength:128},cryptoKey,b64urlToBytes(envelope.ciphertext));
-  } catch(_) {
-    throw Error("Clé incorrecte ou archive altérée.");
-  }
-  if(typeof DecompressionStream!=="function")throw Error("Utilise une version récente de Firefox ou Chrome.");
-  const decompressed=await new Response(new Blob([compressed]).stream()
-    .pipeThrough(new DecompressionStream("gzip"))).arrayBuffer();
-  if(decompressed.byteLength>7*1024*1024)throw Error("Archive trop volumineuse.");
-  const data=JSON.parse(new TextDecoder("utf-8",{fatal:true}).decode(decompressed));
-  if(!data||data.v!==1||data.read_only!==true||!Array.isArray(data.projects)||
-    data.projects.length!==2||data.projects[0].id!=="hd"||data.projects[1].id!=="pc"||
-    !data.projects.every(p=>Array.isArray(p.events)&&p.events.length<=1200)) {
-    throw Error("Format d'archive invalide.");
-  }
-  return data;
-}
 function renderConversation() {
   const p=archive?.projects.find(p=>p.id===activeView);
   $("locked-panel").classList.add("hidden");
   $("conversation-stream").classList.remove("hidden");
-  $("conversation-meta").textContent=archive ?
-    "Conversation publique · sauvegarde "+formatDate(archive.generated_at):
-    "Conversation publique · en attente de synchronisation";
+  $("conversation-meta").textContent=!archive ?
+    "Archive publique indisponible · vérifier la synchronisation GitHub Pages":
+    !p ? "Projet introuvable dans les messages publiés":
+    !p.configured ? "Journal local non transmis pour ce projet · vérifier son agent Windows":
+    "Lecture libre · "+p.events.length+" messages publiés · sauvegarde "+formatDate(archive.generated_at);
   if(!archive||!p){
     $("conversation-stream").replaceChildren(el("p","placeholder",
       "La conversation publique sera visible après la première publication autorisée depuis Windows."));
@@ -369,7 +330,7 @@ function renderConversation() {
   const frag=document.createDocumentFragment();
   if(!events.length)frag.append(el("p","placeholder",p.configured?
     "Aucun message correspondant dans la dernière sauvegarde.":
-    "Ce projet n'a pas encore de journal local sauvegardé."));
+    "Aucun journal de conversation n'a encore été transmis pour ce projet. Vérifier que son agent Windows est installé et qu'il a réellement exécuté des tâches."));
   if(matches.length>visibleMessageCount){
     const more=el("button","older-messages",
       "Afficher les "+Math.min(250,matches.length-visibleMessageCount)+" messages précédents ("+
@@ -388,25 +349,6 @@ function renderConversation() {
     article.append(avatar,body);frag.append(article);
   }
   $("conversation-stream").replaceChildren(frag);
-}
-async function unlock() {
-  if(unlocking)return;
-  unlocking=true;
-  $("unlock-btn").disabled=true;
-  $("unlock-status").textContent="Déchiffrement dans ton navigateur…";
-  try {
-    archive=await decryptArchive($("archive-key").value.trim());
-    $("archive-key").value="";
-    $("unlock-status").classList.remove("error");
-    renderConversation();
-    // Update the HOME overview with authentic last messages only after local unlock.
-    renderUnlockedHome();
-  } catch(error) {
-    $("unlock-status").classList.add("error");
-    $("unlock-status").textContent=error instanceof Error?error.message:"Impossible de déchiffrer.";
-  } finally {
-    unlocking=false;$("unlock-btn").disabled=false;
-  }
 }
 function renderUnlockedHome() {
   if(!archive)return;
@@ -470,8 +412,6 @@ $("tab-progress").addEventListener("click",()=>changeTab("progress"));
 $("close-drawer").addEventListener("click",closeTaskDrawer);
 $("overlay-scrim").addEventListener("click",closeTaskDrawer);
 document.addEventListener("keydown",e=>{if(e.key==="Escape")closeTaskDrawer()});
-$("unlock-btn").addEventListener("click",unlock);
-$("archive-key").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
 $("conversation-search").addEventListener("input",renderConversation);
 $("prompt-submit").addEventListener("click",openPrompt);
 $("connect-btn").addEventListener("click",()=>window.open("https://github.com/login","_blank","noopener,noreferrer"));
@@ -486,7 +426,10 @@ async function loadPublicArchive(){
     archive=doc;
     renderConversation();
     renderUnlockedHome();
-  }catch(_){archive=null;renderConversation();}
+  }catch(error){
+    archive=null;renderConversation();
+    console.warn("Burnout3 LAB: public conversations unavailable",error?.message||"unknown");
+  }
 }
 const privacyNotice=document.querySelector(".privacy-note");
 if(privacyNotice)privacyNotice.textContent="Lecture libre : les conversations publiées sont accessibles sans compte ni clé. Seul l'envoi d'un prompt nécessite une connexion GitHub. Ne jamais inclure de secrets dans les messages publics.";
