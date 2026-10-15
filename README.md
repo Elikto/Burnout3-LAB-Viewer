@@ -1,35 +1,35 @@
-# Burnout 3 LAB · Archives des agents IA
+# Burnout 3 LAB · Centre de contrôle des deux agents
 
-**Site de consultation public et statique**, indépendant du PC Windows. Il affiche les **derniers échanges réels** de deux projets privés indépendants, après déchiffrement local dans ton navigateur :
+Site public : https://elikto.github.io/Burnout3-LAB-Viewer/
 
-- **Burnout 3 HD** — textures PCSX2 / Real-ESRGAN / Qwen.
-- **Burnout 3 Remastered PC Edition** — préparation d'un portage Windows natif / Qwen.
+## Fonctionnalités
 
-Ce dépôt **PUBLIC ne contient ni code source privé des deux projets, ni ISO/BIOS, ni textures, ni conversations en clair, ni mot de passe, ni clé de déchiffrement**. Il ne doit contenir que :
+- **Accueil** : barres de progression calculées uniquement à partir d'objectifs réellement enregistrés, tâche actuelle ou dernière tâche, prochaine tâche si connue, résumés des derniers échanges et date de sauvegarde.
+- **Cliquer sur une tâche** : actions accomplies d'après le journal, dernier signal horodaté et étapes restantes. Aucun pourcentage n'est inventé.
+- **Menu latéral** : Burnout 3 HD (textures PCSX2) et Burnout 3 Remastered PC Edition (recherche sur portage natif PAL) avec de grandes conversations séparées.
+- **Historique intégral** : déchiffrement AES-256-GCM dans le navigateur avec la clé personnelle de 43 caractères, jamais sauvegardée sur le site ou GitHub.
+- **Faire un prompt en se connectant** : ouvrir une issue préremplie dans le dépôt GitHub privé du projet choisi. GitHub vérifie la connexion et demande de confirmer Submit new issue. Seules les demandes du compte Elikto et au format strict PROMPT WEB sont mises en file par les workflows des dépôts privés. L'agent local les traite à sa prochaine synchronisation. Le clic sur le bouton du site ne soumet pas encore l'issue : la confirmation GitHub est obligatoire.
+- **PC éteint** : dernier état consultable ; les prompts éventuellement déposés dans GitHub attendent la reconnexion du PC.
 
-- `index.html`, `style.css`, `app.js` : interface web statique ;
-- `.nojekyll` : configuration statique de GitHub Pages ;
-- `latest.enc.json` : **uniquement** une archive JSON chiffrée **AES-256-GCM**, ou un état d'attente tant que le PC n'a rien envoyé ;
-- `README.md` et `LICENSE` si présent : documentation du site ;
-- `.github/workflows/` : tests de sécurité éventuels de ce dépôt, jamais les agents Windows.
+## Sécurité
 
-## Mise en ligne
+Ce dépôt est PUBLIC mais ne contient que :
+- index.html, style.css, app.js et .nojekyll : site statique.
+- public-status.json : compteurs, titres de tâches prédéfinis, dates et résumés d'événements prédéfinis (aucun prompt complet, aucune réponse Qwen ou donnée personnelle).
+- latest.enc.json : archive des deux conversations entièrement chiffrée AES-256-GCM ou marqueur d'attente.
+- README et workflows de tests propres à ce viewer.
 
-Dans les paramètres **de ce dépôt public** : [Settings → Pages](https://github.com/Elikto/Burnout3-LAB-Viewer/settings/pages) → **Build and deployment → Deploy from a branch → main → /(root)** → Save. L'adresse typique du site sera `https://elikto.github.io/Burnout3-LAB-Viewer/`, uniquement **après** le déploiement confirmé dans Pages.
+**Elikto/Burnout3-HD et Elikto/Burnout3-Remastered-PC-Edition restent PRIVÉS.** Les workflows ne convertissent en tâches que les issues déposées par le compte propriétaire GitHub. Aucune clé GitHub, API OpenAI ou Ollama n'est incluse dans le navigateur.
 
-La première archive réelle exige une autorisation locale, sur **le PC propriétaire**. Dans le miroir GitHub privé de Burnout3-HD sous `%LOCALAPPDATA%\Burnout3-HD\github-mirror\scripts`, double-cliquer **`installer-pages-public.cmd`**. L'installateur procède à des vérifications de chiffrement, demande explicitement **OUI**, génère une clé secrète aléatoire de 43 caractères à protéger avec Windows DPAPI et te demande de la sauvegarder personnellement avant toute publication. **Ne communique jamais cette clé dans ChatGPT, sur GitHub, par SMS ou e-mail.**
+Les pourcentages HD se rapportent à des lots de textures, pas au jeu entier. Les éventuels pourcentages PC Edition correspondent à la réalisation d'un plan de recherche, pas à une compilation réussie ou un jeu PC jouable.
 
-Une fois installé, Windows synchronise au plus une nouvelle copie des conversations toutes les **15 minutes**, seulement quand le PC est éveillé, connecté et que les journaux ont évolué.
+## Synchronisation et mise à jour
 
-## Ce que permet ce site
+Le dépôt privé HD contient les programmes Windows de publication. Après accord initial et création de la clé DPAPI, la tâche publie une archive chiffrée et un résumé public sans texte brut, au maximum toutes les 15 minutes lorsque les sources changent.
 
-- **PC allumé :** afficher les échanges récents après sauvegarde chiffrée.
-- **PC éteint ou Tailscale déconnecté :** afficher **la dernière copie synchronisée** depuis n'importe quel navigateur Internet.
-- **PC éteint :** aucun nouveau travail de Qwen ou Real-ESRGAN n'est produit par ce site, et aucun prompt ne peut être envoyé au PC.
-- **Envoi de consignes :** continuer à utiliser le site **Tailscale privé**, quand le PC est connecté.
+- Première installation : lancer scripts/installer-pages-public.cmd depuis le miroir HD privé après synchronisation, sauvegarder la clé personnelle, confirmer OUI.
+- Si les sauvegardes étaient déjà installées : lancer scripts/mettre-a-jour-tableau-public.cmd après synchronisation. Celui-ci teste les sources, demande OUI, sauvegarde les copies précédentes et actualise le viewer sans changer les agents.
 
-La clé sert uniquement au déchiffrement **dans le navigateur** par WebCrypto. GitHub Pages reste **public** et tout le monde peut télécharger les archives chiffrées ; la confidentialité dépend entièrement de ta clé. De vieilles archives chiffrées peuvent subsister dans l'historique Git. L'interface utilise uniquement du JavaScript local, sans analytics, bibliothèque CDN ou appel à l'API OpenAI.
+Guide privé HD : https://github.com/Elikto/Burnout3-HD/blob/main/docs/PAGES-PUBLIC-ARCHIVES-CHIFFREES.md
 
-Guide d'installation dans le dépôt **privé** : [Archives publiques chiffrées](https://github.com/Elikto/Burnout3-HD/blob/main/docs/PAGES-PUBLIC-ARCHIVES-CHIFFREES.md).
-
-**État initial :** `latest.enc.json` n'est qu'un marqueur d'attente. La publication d'un site web ne constitue pas une preuve de sauvegarde des conversations ou de disponibilité des agents.
+GitHub Pages est statique. Il ne dispose d'aucune session OAuth GitHub intégrée ni d'un serveur d'inférence. Une messagerie avec envoi direct sans confirmation sur GitHub nécessiterait un véritable backend authentifié supplémentaire.
