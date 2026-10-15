@@ -169,8 +169,17 @@ function renderHome() {
     fill.style.width=progress===null?"0%":progress+"%";
     track.append(fill);
     const next=el("div","progress-next");
+    const upcoming=(project?.tasks||[]).filter(t=>t!==task&&t.status==="queued").map(t=>t.title);
+    if(task?.next && task.next!==task.title && !upcoming.includes(task.next))upcoming.unshift(task.next);
+
     next.append(el("strong","","Prochaine tâche : "),
       document.createTextNode(task?(nextTask(project,task)||"Aucune tâche suivante confirmée"):"Non définie"));
+    if(upcoming.length){
+      const heading=el("strong","upcoming-heading","À VENIR");
+      const list=el("ol","upcoming-list");
+      for(const name of upcoming.slice(0,6))list.append(el("li","",name));
+      next.append(heading,list);
+    }
     card.append(top,title,caption,track,next,
       el("div","progress-foot","Voir les actions effectuées, la dernière activité et les étapes restantes →"));
     card.addEventListener("click",()=>openTaskDrawer(id,task));
@@ -342,8 +351,8 @@ function renderConversation() {
   $("locked-panel").classList.toggle("hidden",Boolean(archive));
   $("conversation-stream").classList.toggle("hidden",!archive);
   $("conversation-meta").textContent=archive ?
-    "Historique authentique · sauvegarde "+formatDate(archive.generated_at):
-    "Archive intégrale chiffrée · clé privée nécessaire";
+    "Conversation publique · sauvegarde "+formatDate(archive.generated_at):
+    "Conversation publique · en attente de synchronisation";
   if(!archive||!p)return;
   const needle=$("conversation-search").value.trim().toLocaleLowerCase("fr-FR");
   const events=p.events.filter(x=>x&&ROLES.has(x.role)&&typeof x.message==="string"
@@ -396,7 +405,7 @@ function renderUnlockedHome() {
     const row=el("article","activity-row");
     const body=el("div","activity-copy");
     body.append(el("strong","",PROJECTS[item.id].title+" · "+labelRole(item.role)),
-      el("p","",item.message.slice(0,500)),el("div","activity-meta","Extrait privé déchiffré localement"));
+      el("p","",item.message.slice(0,500)),el("div","activity-meta","Extrait public de la conversation"));
     row.append(el("div","activity-avatar "+item.id,item.id.toUpperCase()),
       body,el("time","activity-time",shortDate(item.time)));
     feed.append(row);
@@ -450,6 +459,21 @@ $("archive-key").addEventListener("keydown",e=>{if(e.key==="Enter")unlock()});
 $("conversation-search").addEventListener("input",renderConversation);
 $("prompt-submit").addEventListener("click",openPrompt);
 $("connect-btn").addEventListener("click",()=>window.open("https://github.com/login","_blank","noopener,noreferrer"));
+// Reading publicly published messages never requires GitHub authentication.
+async function loadPublicArchive(){
+  try{
+    const response=await fetch("./public-conversations.json",{cache:"no-store",credentials:"omit"});
+    if(!response.ok)throw Error("missing");
+    const doc=await response.json();
+    if(!doc||doc.v!==1||doc.read_only!==true||!Array.isArray(doc.projects)||
+       doc.projects.length!==2||doc.projects[0]?.id!=="hd"||doc.projects[1]?.id!=="pc")throw Error("invalid");
+    archive=doc;
+    renderConversation();
+    renderUnlockedHome();
+  }catch(_){archive=null;renderConversation();}
+}
 navigate(viewFromHash());
 loadPublicStatus();
+loadPublicArchive();
+setInterval(loadPublicArchive,120_000);
 setInterval(loadPublicStatus,60_000);
