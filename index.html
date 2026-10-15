@@ -1,0 +1,96 @@
+<!doctype html>
+<html lang="fr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="referrer" content="no-referrer">
+  <meta name="color-scheme" content="dark">
+  <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
+  <title>Burnout 3 LAB · Archives chiffrées</title>
+  <link rel="stylesheet" href="./style.css">
+  <script src="./app.js" defer></script>
+</head>
+<body>
+  <div class="shell">
+    <header class="header">
+      <div class="brand"><span class="logo">B<span>3</span></span><div><p>Burnout 3 LAB</p><strong>Archives des IA</strong></div></div>
+      <div class="header-right"><span class="secure">Archives chiffrées</span><span class="read-only">Mode consultation</span></div>
+    </header>
+    <main>
+      <div class="intro">
+        <div>
+          <p class="label">Hébergement GitHub Pages · indépendamment du PC</p>
+          <h1>Revoir les <span>conversations</span><br>même hors connexion</h1>
+          <p class="lead">Les derniers échanges réellement enregistrés par les deux agents, sauvegardés en chiffres illisibles sur GitHub puis déchiffrés uniquement dans ton navigateur.</p>
+        </div>
+      </div>
+      <section class="notice" aria-label="Limites des archives">
+        <span class="notice-icon">i</span>
+        <p><strong>Ce site montre une copie à la dernière synchronisation.</strong> Quand le PC est éteint ou déconnecté, les conversations restent consultables, mais aucun nouveau travail ni nouveau message n'est généré. Pour envoyer une consigne aux agents, utilise le tableau de bord Tailscale pendant que ton PC est connecté.</p>
+      </section>
+      <section class="unlock" id="unlock">
+        <div class="unlock-icon"><svg width="27" height="27" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 10V7a6 6 0 1 1 12 0v3M5 10h14v12H5zM12 15v3"/></svg></div>
+        <div class="unlock-info">
+          <h2>Déverrouiller les conversations</h2>
+          <p>Colle ta clé privée de 43 caractères, fournie lors de l'installation Windows. Elle n'est pas envoyée à GitHub ni conservée dans le navigateur.</p>
+          <div class="unlock-control">
+            <label for="archive-key" class="sr-only">Clé privée de l'archive</label>
+            <input id="archive-key" type="password" maxlength="43" minlength="43" autocomplete="off" spellcheck="false" placeholder="Clé privée de l'archive (43 caractères)">
+            <button type="button" id="unlock-btn">Déverrouiller <span>→</span></button>
+          </div>
+          <p class="hint" id="unlock-status" role="status" aria-live="polite">Aucune clé ne doit être copiée dans ChatGPT ou sur GitHub.</p>
+        </div>
+      </section>
+      <section id="archive" class="archive hidden" aria-label="Conversations archivées">
+        <div class="archive-top">
+          <div>
+            <p class="label">Dernier instantané conservé sur GitHub</p>
+            <h2 id="snapshot-date">—</h2>
+            <p class="small">La date correspond à la dernière sauvegarde disponible, pas forcément à la dernière activité des agents.</p>
+          </div>
+          <button id="lock-btn" class="lock-btn" type="button">Verrouiller</button>
+        </div>
+        <div class="metrics">
+          <div><span>Événements HD</span><strong id="hd-total">0</strong></div>
+          <div><span>Événements PC Edition</span><strong id="pc-total">0</strong></div>
+          <div><span>Mode</span><strong>Historique</strong></div>
+        </div>
+        <div class="projects">
+          <section class="project hd" aria-label="Conversations de Burnout 3 HD">
+            <header class="project-header">
+              <div class="project-icon">HD</div>
+              <div><p class="label">Projet 01 · PCSX2</p><h3>Burnout 3 <em>HD</em></h3><p class="small">Textures · Real-ESRGAN · Qwen</p></div>
+            </header>
+            <div class="status-row"><span id="hd-state">Chargement…</span><span id="hd-count">0 message</span></div>
+            <div class="search-row">
+              <label for="hd-search">Rechercher dans l'archive HD</label>
+              <input id="hd-search" type="search" placeholder="Rechercher…">
+            </div>
+            <div class="stream" id="hd-stream" aria-live="off">
+              <p class="empty">En attente de déchiffrement.</p>
+            </div>
+          </section>
+          <section class="project pc" aria-label="Conversations de Burnout 3 Remastered PC Edition">
+            <header class="project-header">
+              <div class="project-icon">PC</div>
+              <div><p class="label">Projet 02 · Windows natif</p><h3>Remastered <em>PC Edition</em></h3><p class="small">Portage · Compatibilité PAL · Qwen</p></div>
+            </header>
+            <div class="status-row"><span id="pc-state">Chargement…</span><span id="pc-count">0 message</span></div>
+            <div class="search-row">
+              <label for="pc-search">Rechercher dans l'archive PC Edition</label>
+              <input id="pc-search" type="search" placeholder="Rechercher…">
+            </div>
+            <div class="stream" id="pc-stream" aria-live="off">
+              <p class="empty">En attente de déchiffrement.</p>
+            </div>
+          </section>
+        </div>
+      </section>
+      <footer>
+        <span>Burnout 3 LAB · Vue d'archive chiffrée, sans agents hébergés sur GitHub.</span>
+        <span>Les mots de passe du site local et la clé de déchiffrement sont distincts.</span>
+      </footer>
+    </main>
+  </div>
+</body>
+</html>
