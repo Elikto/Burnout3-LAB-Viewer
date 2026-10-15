@@ -90,20 +90,10 @@ function normalizeActions(value) {
   const input=value&&typeof value==="object"?value:{};
   const array=v=>Array.isArray(v)?v.filter(x=>typeof x==="string"&&x.length>0)
     .slice(0,15).map(x=>x.slice(0,300)):[];
-  // Public progress detail contains only canned labels and event timestamps;
-  // never the raw messages or private prompts of either agent.
-  const timeline=Array.isArray(input.timeline)?input.timeline.filter(x=>
-    x&&typeof x==="object"&&typeof x.time==="string"&&
-    typeof x.summary==="string"&&typeof x.kind==="string"&&
-    ROLES.has(x.role)).slice(-12).map(x=>({
-      time:x.time.slice(0,50),kind:x.kind.slice(0,60),
-      role:x.role,summary:x.summary.slice(0,300)
-    })):[];
   return {
     done:array(input.done),
     current:typeof input.current==="string"?input.current.slice(0,300):"",
-    remaining:array(input.remaining),
-    timeline
+    remaining:array(input.remaining)
   };
 }
 function currentTask(project) {
@@ -140,8 +130,6 @@ async function loadPublicStatus() {
     publicStatus=null;
   }
   renderHome();
-  // Preserve actual decrypted previews when the background status poll refreshes.
-  if (archive) renderUnlockedHome();
   if (safeProject(activeView)) renderProgressView(activeView);
 }
 function renderHome() {
@@ -183,11 +171,8 @@ function renderHome() {
     const next=el("div","progress-next");
     next.append(el("strong","","Prochaine tâche : "),
       document.createTextNode(task?(nextTask(project,task)||"Aucune tâche suivante confirmée"):"Non définie"));
-    card.append(top,title,caption,track,next);
-    const latest=task?.actions.timeline?.slice(-1)[0];
-    if(latest) card.append(el("div","activity-evidence",
-      "Dernière action enregistrée : "+latest.summary+" · "+shortDate(latest.time)));
-    card.append(el("div","progress-foot","Voir le détail horodaté des actions →"));
+    card.append(top,title,caption,track,next,
+      el("div","progress-foot","Voir les actions effectuées, la dernière activité et les étapes restantes →"));
     card.addEventListener("click",()=>openTaskDrawer(id,task));
     cards.append(card);
   }
@@ -245,26 +230,6 @@ function detailElement(projectId,task) {
   block("Actions déjà réalisées",task.actions.done,"done");
   block("Dernière action signalée",task.actions.current?[task.actions.current]:[],"current");
   block("Ce qui reste à faire",task.actions.remaining,"next");
-  // Real recorded chronology, not a simulated live stream.
-  const timeline=task.actions.timeline||[];
-  const history=el("section","detail-block");
-  history.append(el("h3","","Chronologie des actions réellement journalisées"));
-  if(!timeline.length) {
-    history.append(el("p","drawer-warning","Aucun événement horodaté n'a encore été synchronisé pour cette tâche."));
-  } else {
-    const listing=el("ol","evidence-timeline");
-    for(const step of timeline.slice().reverse()) {
-      const item=el("li");
-      const head=el("div","evidence-header");
-      head.append(el("strong","",step.summary),
-        el("time","",formatDate(step.time)));
-      item.append(head,el("small","",labelRole(step.role)+" · "+step.kind));
-      listing.append(item);
-    }
-    history.append(listing);
-  }
-  container.append(history);
-
   const next=nextTask(publicStatus?.projects[projectId],task);
   if(next) container.append(el("p","drawer-warning","Prochaine tâche : "+next));
   if(task.updated_at) container.append(el("p","drawer-warning","Dernier signal enregistré : "+formatDate(task.updated_at)+". Cela ne prouve pas qu'un traitement est actuellement en cours."));
