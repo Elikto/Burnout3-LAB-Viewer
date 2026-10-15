@@ -348,12 +348,16 @@ async function decryptArchive(keyText) {
 }
 function renderConversation() {
   const p=archive?.projects.find(p=>p.id===activeView);
-  $("locked-panel").classList.toggle("hidden",Boolean(archive));
-  $("conversation-stream").classList.toggle("hidden",!archive);
+  $("locked-panel").classList.add("hidden");
+  $("conversation-stream").classList.remove("hidden");
   $("conversation-meta").textContent=archive ?
     "Conversation publique · sauvegarde "+formatDate(archive.generated_at):
     "Conversation publique · en attente de synchronisation";
-  if(!archive||!p)return;
+  if(!archive||!p){
+    $("conversation-stream").replaceChildren(el("p","placeholder",
+      "La conversation publique sera visible après la première publication autorisée depuis Windows."));
+    return;
+  }
   const needle=$("conversation-search").value.trim().toLocaleLowerCase("fr-FR");
   const events=p.events.filter(x=>x&&ROLES.has(x.role)&&typeof x.message==="string"
     &&typeof x.job==="string"&&(x.message.toLocaleLowerCase("fr-FR").includes(needle)||
@@ -472,6 +476,8 @@ async function loadPublicArchive(){
     renderUnlockedHome();
   }catch(_){archive=null;renderConversation();}
 }
+const privacyNotice=document.querySelector(".privacy-note");
+if(privacyNotice)privacyNotice.textContent="Lecture libre : les conversations publiées sont accessibles sans compte ni clé. Seul l'envoi d'un prompt nécessite une connexion GitHub. Ne jamais inclure de secrets dans les messages publics.";
 navigate(viewFromHash());
 loadPublicStatus();
 loadPublicArchive();
