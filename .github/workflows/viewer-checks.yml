@@ -1,0 +1,68 @@
+name: Public viewer safety checks
+
+on:
+  push:
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  static:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - name: Checkout approved public-only viewer
+        uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - name: Check JavaScript syntax
+        run: node --check app.js
+      - name: Enforce static asset privacy and two-project status contract
+        shell: bash
+        run: |
+          python - <<'PY'
+          import json
+          from pathlib import Path
+          from html.parser import HTMLParser
+
+          class Reader(HTMLParser):
+              tags = []
+              def handle_starttag(self, tag, attrs):
+                  self.tags.append((tag, dict(attrs)))
+
+          allowed_public = {'README.md','index.html','style.css','app.js',
+              '.nojekyll','latest.enc.json','public-status.json',
+              '.github','LICENSE','.gitignore'}
+          actual = {x.name for x in Path('.').iterdir() if x.name != '.git'}
+          if not actual <= allowed_public:
+              raise SystemExit('Unexpected public repository files: '+str(actual-allowed_public))
+          source=Path('index.html').read_text(encoding='utf-8')
+          js=Path('app.js').read_text(encoding='utf-8')
+          parser=Reader()
+          parser.feed(source)
+          if any(tag in {'iframe','form','object','embed'} for tag,_ in parser.tags):
+              raise SystemExit('Unapproved HTML execution surface')
+          if any('src' in attrs and attrs['src'].startswith('http') for tag,attrs in parser.tags):
+              raise SystemExit('External scripts or pixels not authorized')
+          for banned in ('innerHTML', 'eval(', 'new Function(', 'localStorage.',
+                  'sessionStorage.', 'api.openai.com','Authorization: Bearer',
+                  'ghp_', 'github_pat_'):
+              if banned in js:
+                  raise SystemExit('Unsafe browser JS feature: '+banned)
+          if 'github.com/login' not in js or 'issues/new?' not in js:
+              raise SystemExit('GitHub-authenticated prompt handoff missing')
+          if 'crypto.subtle.decrypt' not in js or 'fetch("./public-status.json"' not in js:
+              raise SystemExit('Live dashboard status or private archival decrypt missing')
+          if 'window.open(url,' not in js:
+              raise SystemExit('No actual authenticated GitHub workflow handoff')
+          status=json.loads(Path('public-status.json').read_text(encoding='utf-8'))
+          if status.get('v')!=1 or [p.get('id') for p in status.get('projects',[])]!=['hd','pc']:
+              raise SystemExit('Public status placeholder must keep both projects separate')
+          cipher=json.loads(Path('latest.enc.json').read_text(encoding='utf-8'))
+          if cipher.get('status')!='awaiting-first-encrypted-sync' and (
+              cipher.get('alg')!='AES-256-GCM' or
+              not isinstance(cipher.get('ciphertext'),str)):
+              raise SystemExit('Unencrypted conversation payload must never enter Pages')
+          print('OK: no arbitrary code, secrets or plaintext conversation in public viewer.')
+          PY
