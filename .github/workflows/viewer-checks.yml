@@ -32,7 +32,7 @@ jobs:
                   self.tags.append((tag, dict(attrs)))
 
           allowed_public = {'README.md','index.html','style.css','app.js',
-              '.nojekyll','latest.enc.json','public-status.json',
+              '.nojekyll','latest.enc.json','public-status.json','public-conversations.json',
               '.github','LICENSE','.gitignore'}
           actual = {x.name for x in Path('.').iterdir() if x.name != '.git'}
           if not actual <= allowed_public:
@@ -64,5 +64,8 @@ jobs:
               cipher.get('alg')!='AES-256-GCM' or
               not isinstance(cipher.get('ciphertext'),str)):
               raise SystemExit('Unencrypted conversation payload must never enter Pages')
-          print('OK: no arbitrary code, secrets or plaintext conversation in public viewer.')
+          public_conversations=json.loads(Path('public-conversations.json').read_text(encoding='utf-8'))
+          if public_conversations.get('v') != 1 or [p.get('id') for p in public_conversations.get('projects',[])] != ['hd','pc']:
+              raise SystemExit('Public conversation feed must contain HD and PC Edition')
+          print('OK: public reader and the two-project status contract.')
           PY
