@@ -6,91 +6,111 @@
   <meta name="referrer" content="no-referrer">
   <meta name="color-scheme" content="dark">
   <meta http-equiv="Content-Security-Policy" content="default-src 'none'; script-src 'self'; style-src 'self'; connect-src 'self'; img-src 'self'; base-uri 'none'; form-action 'none'; object-src 'none'">
-  <title>Burnout 3 LAB · Archives chiffrées</title>
+  <title>Burnout 3 LAB · Centre de contrôle des IA</title>
   <link rel="stylesheet" href="./style.css">
   <script src="./app.js" defer></script>
 </head>
 <body>
-  <div class="shell">
-    <header class="header">
-      <div class="brand"><span class="logo">B<span>3</span></span><div><p>Burnout 3 LAB</p><strong>Archives des IA</strong></div></div>
-      <div class="header-right"><span class="secure">Archives chiffrées</span><span class="read-only">Mode consultation</span></div>
-    </header>
-    <main>
-      <div class="intro">
-        <div>
-          <p class="label">Hébergement GitHub Pages · indépendamment du PC</p>
-          <h1>Revoir les <span>conversations</span><br>même hors connexion</h1>
-          <p class="lead">Les derniers échanges réellement enregistrés par les deux agents, sauvegardés en chiffres illisibles sur GitHub puis déchiffrés uniquement dans ton navigateur.</p>
-        </div>
+<div class="layout">
+  <aside class="sidebar" id="sidebar" aria-label="Navigation principale">
+    <a class="brand" href="#accueil">
+      <span class="brand-mark">B<span>3</span></span>
+      <span class="brand-name"><small>BURNOUT 3 LAB</small><strong>Centre de contrôle</strong></span>
+    </a>
+    <div class="navigation-heading">ESPACE DE TRAVAIL</div>
+    <nav aria-label="Projets">
+      <button class="nav-link active" data-view="home" type="button"><span class="nav-symbol">⌂</span><span>Vue d'ensemble</span></button>
+      <button class="nav-link" data-view="hd" type="button"><span class="nav-symbol nav-hd">HD</span><span>Burnout 3 HD</span><span class="nav-arrow">›</span></button>
+      <button class="nav-link" data-view="pc" type="button"><span class="nav-symbol nav-pc">PC</span><span>Burnout 3 Remastered<br>PC Edition</span><span class="nav-arrow">›</span></button>
+    </nav>
+    <div class="sidebar-bottom">
+      <div class="sync-indicator"><span id="sync-dot" class="dot"></span><span id="sidebar-status">En attente des données</span></div>
+      <p class="sidebar-note">Historique synchronisé depuis Windows. L'IA ne travaille pas sur GitHub Pages.</p>
+      <a class="sidebar-link" href="https://lenovo-loq.tail8f98a0.ts.net:8443/" target="_blank" rel="noopener noreferrer">Tableau de bord privé Tailscale ↗</a>
+    </div>
+  </aside>
+
+  <div class="content">
+    <header class="topbar">
+      <button id="menu-toggle" class="menu-toggle" type="button" aria-label="Afficher le menu" aria-expanded="false">☰</button>
+      <div><span class="eyebrow">BURNOUT 3 LAB</span><span class="topbar-crumb"> / </span><strong id="breadcrumb">Vue d'ensemble</strong></div>
+      <div class="topbar-right">
+        <span class="pill"><span class="pill-dot"></span> Site public · Lecture</span>
+        <button id="connect-btn" class="github-button" type="button">Connexion GitHub pour écrire <span>↗</span></button>
       </div>
-      <section class="notice" aria-label="Limites des archives">
-        <span class="notice-icon">i</span>
-        <p><strong>Ce site montre une copie à la dernière synchronisation.</strong> Quand le PC est éteint ou déconnecté, les conversations restent consultables, mais aucun nouveau travail ni nouveau message n'est généré. Pour envoyer une consigne aux agents, utilise le tableau de bord Tailscale pendant que ton PC est connecté.</p>
-      </section>
-      <section class="unlock" id="unlock">
-        <div class="unlock-icon"><svg width="27" height="27" viewBox="0 0 24 24" aria-hidden="true"><path fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" d="M6 10V7a6 6 0 1 1 12 0v3M5 10h14v12H5zM12 15v3"/></svg></div>
-        <div class="unlock-info">
-          <h2>Déverrouiller les conversations</h2>
-          <p>Colle ta clé privée de 43 caractères, fournie lors de l'installation Windows. Elle n'est pas envoyée à GitHub ni conservée dans le navigateur.</p>
-          <div class="unlock-control">
-            <label for="archive-key" class="sr-only">Clé privée de l'archive</label>
-            <input id="archive-key" type="password" maxlength="43" minlength="43" autocomplete="off" spellcheck="false" placeholder="Clé privée de l'archive (43 caractères)">
-            <button type="button" id="unlock-btn">Déverrouiller <span>→</span></button>
-          </div>
-          <p class="hint" id="unlock-status" role="status" aria-live="polite">Aucune clé ne doit être copiée dans ChatGPT ou sur GitHub.</p>
-        </div>
-      </section>
-      <section id="archive" class="archive hidden" aria-label="Conversations archivées">
-        <div class="archive-top">
+    </header>
+
+    <main class="main">
+      <section id="home-view" class="view">
+        <div class="page-intro">
           <div>
-            <p class="label">Dernier instantané conservé sur GitHub</p>
-            <h2 id="snapshot-date">—</h2>
-            <p class="small">La date correspond à la dernière sauvegarde disponible, pas forcément à la dernière activité des agents.</p>
+            <div class="eyebrow eyebrow-highlight">SUIVI DES DEUX PROJETS</div>
+            <h1>Vue d'<span>ensemble</span></h1>
+            <p>Progression vérifiée, dernières activités et échanges des agents. Les données proviennent des dernières sauvegardes et peuvent être anciennes si le PC est déconnecté.</p>
           </div>
-          <button id="lock-btn" class="lock-btn" type="button">Verrouiller</button>
+          <div class="snapshot-label"><span class="dot"></span><span id="snapshot-label">Aucune télémétrie synchronisée</span></div>
         </div>
-        <div class="metrics">
-          <div><span>Événements HD</span><strong id="hd-total">0</strong></div>
-          <div><span>Événements PC Edition</span><strong id="pc-total">0</strong></div>
-          <div><span>Mode</span><strong>Historique</strong></div>
+        <div class="overview-metrics">
+          <div class="metric"><small>Projets surveillés</small><strong>02</strong><span>Deux agents séparés</span></div>
+          <div class="metric"><small>Dernière synchronisation</small><strong id="metric-sync">—</strong><span>Instantané, pas présence réelle</span></div>
+          <div class="metric"><small>Tâches terminées</small><strong id="metric-done">—</strong><span>Dans le dernier état reçu</span></div>
+          <div class="metric"><small>Activité récente</small><strong id="metric-events">—</strong><span>Événements récapitulatifs publics</span></div>
         </div>
-        <div class="projects">
-          <section class="project hd" aria-label="Conversations de Burnout 3 HD">
-            <header class="project-header">
-              <div class="project-icon">HD</div>
-              <div><p class="label">Projet 01 · PCSX2</p><h3>Burnout 3 <em>HD</em></h3><p class="small">Textures · Real-ESRGAN · Qwen</p></div>
-            </header>
-            <div class="status-row"><span id="hd-state">Chargement…</span><span id="hd-count">0 message</span></div>
-            <div class="search-row">
-              <label for="hd-search">Rechercher dans l'archive HD</label>
-              <input id="hd-search" type="search" placeholder="Rechercher…">
-            </div>
-            <div class="stream" id="hd-stream" aria-live="off">
-              <p class="empty">En attente de déchiffrement.</p>
-            </div>
-          </section>
-          <section class="project pc" aria-label="Conversations de Burnout 3 Remastered PC Edition">
-            <header class="project-header">
-              <div class="project-icon">PC</div>
-              <div><p class="label">Projet 02 · Windows natif</p><h3>Remastered <em>PC Edition</em></h3><p class="small">Portage · Compatibilité PAL · Qwen</p></div>
-            </header>
-            <div class="status-row"><span id="pc-state">Chargement…</span><span id="pc-count">0 message</span></div>
-            <div class="search-row">
-              <label for="pc-search">Rechercher dans l'archive PC Edition</label>
-              <input id="pc-search" type="search" placeholder="Rechercher…">
-            </div>
-            <div class="stream" id="pc-stream" aria-live="off">
-              <p class="empty">En attente de déchiffrement.</p>
-            </div>
-          </section>
+
+        <div class="section-title"><div><small>01 — TRAVAIL DES AGENTS</small><h2>Tâches et progression</h2></div><span>Cliquer pour voir les étapes</span></div>
+        <div id="progress-grid" class="progress-grid">
+          <p class="placeholder">Chargement du dernier état des tâches…</p>
         </div>
+        <div class="section-title"><div><small>02 — DERNIERS ÉCHANGES</small><h2>Activité des conversations</h2></div><span>Résumé public · échanges complets dans chaque projet</span></div>
+        <div id="recent-feed" class="activity-list"><p class="placeholder">Aucune activité publique synchronisée pour le moment.</p></div>
+        <div class="privacy-note"><strong>Confidentialité :</strong> le public voit seulement des résumés d'événements validés. Les textes intégraux des échanges restent dans une archive chiffrée que tu peux déverrouiller avec ta clé privée. L'authentification GitHub est requise pour proposer un nouveau prompt.</div>
       </section>
-      <footer>
-        <span>Burnout 3 LAB · Vue d'archive chiffrée, sans agents hébergés sur GitHub.</span>
-        <span>Les mots de passe du site local et la clé de déchiffrement sont distincts.</span>
-      </footer>
+
+      <section id="project-view" class="view hidden" aria-label="Détails du projet">
+        <div class="project-hero">
+          <button type="button" id="back-home" class="back-button">← Vue d'ensemble</button>
+          <div class="project-heading"><span id="project-icon" class="project-heading-icon">HD</span><div><span id="project-label" class="eyebrow">PROJET</span><h1 id="project-title">Burnout 3 HD</h1><p id="project-description"></p></div></div>
+        </div>
+        <div class="project-tabs"><button type="button" class="tab active" id="tab-messages">Conversation complète</button><button type="button" class="tab" id="tab-progress">Progression et actions</button></div>
+        <section id="conversation-pane" class="conversation-pane">
+          <div class="conversation-toolbar"><div><strong id="conversation-heading">Conversation des agents</strong><p id="conversation-meta">Archive réelle et chiffrée</p></div><label class="search-label">Rechercher <input id="conversation-search" type="search" placeholder="Message ou identifiant…"></label></div>
+          <div id="locked-panel" class="locked-panel">
+            <div class="lock-symbol">⌑</div>
+            <h2>Déverrouiller l'historique intégral</h2>
+            <p>Le site est public, mais les messages complets restent chiffrés. Entre ta clé d'archive de 43 caractères ; elle est utilisée uniquement dans ton navigateur.</p>
+            <div class="unlock-form"><label class="sr-only" for="archive-key">Clé d'archive AES-256-GCM</label><input id="archive-key" type="password" autocomplete="off" minlength="43" maxlength="43" placeholder="Clé privée (43 caractères)"><button id="unlock-btn" type="button">Déverrouiller</button></div>
+            <p id="unlock-status" class="unlock-status" role="status" aria-live="polite">Aucune clé n'est envoyée à GitHub.</p>
+          </div>
+          <div id="conversation-stream" class="conversation-stream hidden" aria-live="off"></div>
+        </section>
+        <section id="project-progress-pane" class="hidden" aria-label="Progression du projet"><div id="project-progress-content"></div></section>
+
+        <section class="composer" aria-label="Proposer un prompt">
+          <div class="composer-header"><div><strong>Envoyer une consigne</strong><p>Connexion GitHub obligatoire · Création d'une demande dans le dépôt privé du projet</p></div><span class="compose-status">Autorisation requise</span></div>
+          <label for="prompt-text">Ton prompt pour l'agent sélectionné</label>
+          <textarea id="prompt-text" maxlength="700" minlength="3" rows="4" placeholder="Décris ce que tu souhaites que l'agent fasse ensuite…"></textarea>
+          <div class="composer-footer">
+            <p>Tu seras redirigé vers GitHub pour te connecter et confirmer l'envoi. Le site public ne stocke aucun token GitHub.</p>
+            <button id="prompt-submit" type="button">Se connecter et envoyer via GitHub ↗</button>
+          </div>
+          <p id="prompt-feedback" role="status" aria-live="polite"></p>
+        </section>
+      </section>
+      <footer>Burnout 3 LAB · Site statique public · Les pourcentages ne sont affichés que lorsqu'un objectif chiffré existe. <span>Dernière sauvegarde ≠ traitement en direct.</span></footer>
     </main>
   </div>
+</div>
+
+<div id="task-overlay" class="task-overlay hidden" role="presentation">
+  <div class="overlay-scrim" id="overlay-scrim"></div>
+  <aside class="task-drawer" role="dialog" aria-modal="true" aria-labelledby="drawer-title">
+    <div class="drawer-header"><span class="eyebrow">SUIVI DÉTAILLÉ DES ACTIONS</span><button id="close-drawer" type="button" aria-label="Fermer les détails">✕</button></div>
+    <h2 id="drawer-title">Détails de la tâche</h2>
+    <p id="drawer-subtitle" class="drawer-subtitle"></p>
+    <div id="drawer-progress"></div>
+    <div id="drawer-actions"></div>
+    <p class="drawer-warning">Les actions proviennent d'événements enregistrés : aucune activité n'est inventée entre deux synchronisations.</p>
+  </aside>
+</div>
 </body>
 </html>
