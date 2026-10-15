@@ -64,8 +64,16 @@ const PC_FUTURE_TASKS=[
 function knownTaskTitle(id, rawTitle) {
   const hd=/^hd-texture-run-(\d{4})$/.exec(id||"");
   const pc=/^pc-research-run-(\d{4})$/.exec(id||"");
-  if(hd&&Number(hd[1])>0)return "Lot HD "+hd[1]+" — "+HD_FUTURE_TASKS[(Number(hd[1])-1)%HD_FUTURE_TASKS.length];
-  if(pc&&Number(pc[1])>0)return "Étude PC "+pc[1]+" — "+PC_FUTURE_TASKS[(Number(pc[1])-1)%PC_FUTURE_TASKS.length];
+  if(hd&&Number(hd[1])>0){
+    const prefix="Lot HD "+hd[1]+" — ";
+    const suffix=rawTitle?.startsWith(prefix)?rawTitle.slice(prefix.length):"";
+    return prefix+(HD_FUTURE_TASKS.includes(suffix)?suffix:HD_FUTURE_TASKS[(Number(hd[1])-1)%HD_FUTURE_TASKS.length]);
+  }
+  if(pc&&Number(pc[1])>0){
+    const prefix="Étude PC "+pc[1]+" — ";
+    const suffix=rawTitle?.startsWith(prefix)?rawTitle.slice(prefix.length):"";
+    return prefix+(PC_FUTURE_TASKS.includes(suffix)?suffix:PC_FUTURE_TASKS[(Number(pc[1])-1)%PC_FUTURE_TASKS.length]);
+  }
   return rawTitle;
 }
 function normalizeStatus(doc) {
