@@ -82,3 +82,7 @@ footer{border-top:1px solid var(--border);font-size:10px;color:#7e91ab;display:f
 .upcoming-list{margin:0;padding-left:21px;display:flex;flex-direction:column;gap:7px}
 .upcoming-list li{font-size:12px;line-height:1.5;color:#d7e6f9}
 .upcoming-list li::marker{color:var(--orange);font-weight:800}
+
+/* Charger progressivement les conversations completes sans bloquer le navigateur. */
+.older-messages{align-self:center;border:1px solid #55708d;border-radius:10px;padding:10px 17px;background:#22334b;color:#e1f0ff;font-weight:700;font-size:12px;cursor:pointer}
+.older-messages:hover{border-color:var(--orange);background:#2d4058}
