@@ -130,6 +130,7 @@ async function loadPublicStatus() {
     publicStatus=null;
   }
   renderHome();
+  if(archive)renderUnlockedHome();
   if (safeProject(activeView)) renderProgressView(activeView);
 }
 function renderHome() {
@@ -194,7 +195,7 @@ function renderHome() {
   rows.sort((a,b)=>(Date.parse(b.time)||0)-(Date.parse(a.time)||0));
   const feed=document.createDocumentFragment();
   if(!rows.length) {
-    feed.append(el("p","placeholder","Aucun événement vérifié n'a encore été publié. L'archive chiffrée et le suivi public nécessitent une première synchronisation Windows."));
+    feed.append(el("p","placeholder","Les conversations et le suivi des tâches seront visibles après la première synchronisation Windows."));
   }
   for(const item of rows.slice(0,12)) {
     const row=el("article","activity-row");
