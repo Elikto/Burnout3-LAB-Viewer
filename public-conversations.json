@@ -1,0 +1,17 @@
+{
+  "v": 1,
+  "generated_at": null,
+  "read_only": true,
+  "projects": [
+    {
+      "id": "hd",
+      "configured": false,
+      "events": []
+    },
+    {
+      "id": "pc",
+      "configured": false,
+      "events": []
+    }
+  ]
+}
