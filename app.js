@@ -63,7 +63,7 @@ function normalizeStatus(doc) {
         .map(t=>({
           id: typeof t.id==="string"?t.id.slice(0,64):"",
           title:t.title.slice(0,150),
-          status:["completed","active","queued","blocked","unknown"].includes(t.status)
+          status:["completed","active","selected","queued","blocked","unknown"].includes(t.status)
             ? t.status:"unknown",
           done:Number.isInteger(t.done)&&t.done>=0?t.done:null,
           total:Number.isInteger(t.total)&&t.total>0?t.total:null,
@@ -98,6 +98,7 @@ function normalizeActions(value) {
 function currentTask(project) {
   const tasks=project?.tasks||[];
   return tasks.find(t=>t.status==="active") ||
+    tasks.find(t=>t.status==="selected") ||
     tasks.find(t=>t.status==="queued") ||
     tasks.find(t=>t.status==="blocked") ||
     tasks.slice().reverse().find(t=>t.status==="completed") || null;
@@ -109,7 +110,7 @@ function nextTask(project, selected) {
   return tasks.find(t=>t!==selected && t.status==="queued")?.title || "";
 }
 function statusName(status) {
-  return {completed:"Terminé",active:"Activité récente",
+  return {completed:"Terminé",active:"IA active récemment",selected:"Tâche prioritaire",
     queued:"En attente",blocked:"Bloqué",unknown:"Non vérifié"}[status]||"Non vérifié";
 }
 function progressValue(task) {
@@ -147,7 +148,7 @@ function renderHome() {
   for(const id of ["hd","pc"]) {
     const project=status?.projects[id];
     const task=currentTask(project);
-    const pending=(project?.tasks||[]).filter(t=>t!==task && (t.status==="queued" || t.status==="active"));
+    const pending=(project?.tasks||[]).filter(t=>t!==task && t.status==="queued");
     const next=pending[0]||null;
     const progress=progressValue(task);
     const card=el("button","progress-card "+id);
@@ -157,7 +158,7 @@ function renderHome() {
     const identity=el("div","card-project");
     identity.append(el("span","",id.toUpperCase()),el("strong","",PROJECTS[id].title));
     top.append(identity,el("span","task-state",task?statusName(task.status):"En attente"));
-    card.append(top,el("div","work-heading","TÂCHE SUIVIE"),
+    card.append(top,el("div","work-heading","TÂCHE PRIORITAIRE"),
       el("h2","task-name",task?task.title:"Aucune tâche reçue depuis Windows"));
     const caption=el("div","progress-caption");
     caption.append(el("span","",progress===null?"Progression non mesurée":"Avancement de la tâche"),
@@ -167,14 +168,16 @@ function renderHome() {
     fill.style.width=progress===null?"0%":progress+"%";
     track.append(fill);
     card.append(caption,track);
+    if(task && task.status!=="active")card.append(el("p","agent-activity-hint","Tâche assignée, exécution IA non confirmée au dernier relevé."));
+
 
     const upcoming=el("div","next-task-block");
     upcoming.append(el("span","work-heading","PROCHAINE TÂCHE"),
       el("strong","next-task-title",next?.title||"Aucune prochaine tâche confirmée"),
-      el("div","queue-count",pending.length+" tâche"+(pending.length>1?"s":"")+" en attente"));
+      el("div","queue-count",pending.length>=5 ? pending.length+" prochaines tâches planifiées" : pending.length+" / 5 tâches futures planifiées · réserve à compléter"));
     const list=el("ol","upcoming-list");
     for(const item of pending.slice(0,8))list.append(el("li","",item.title));
-    if(pending.length===0)list.append(el("li","queue-empty","File vide — aucune activité inventée"));
+    if(pending.length===0)list.append(el("li","queue-empty","Aucune prochaine tâche encore synchronisée"));
     upcoming.append(list);
     card.append(upcoming,el("div","progress-foot","Voir les actions effectuées et les étapes restantes →"));
     card.addEventListener("click",()=>openTaskDrawer(id,task));
