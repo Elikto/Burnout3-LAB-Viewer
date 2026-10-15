@@ -20,6 +20,7 @@ const ROLES = new Set(["chatgpt", "qwen", "agent", "system"]);
 const AAD = new TextEncoder().encode("Burnout3-LAB/encrypted-offline-archive/v1");
 let publicStatus = null;
 let archive = null;
+let visibleMessageCount = 250;
 let activeView = "home";
 let activeTab = "messages";
 let selectedTask = null;
@@ -278,6 +279,7 @@ function navigate(view) {
     $("project-icon").className="project-heading-icon "+view;
     $("conversation-heading").textContent="Conversation complète · "+conf.projectCode;
     $("conversation-search").value="";
+    visibleMessageCount=250;
     $("prompt-text").value="";
     $("prompt-feedback").textContent="";
     changeTab("messages");
@@ -360,13 +362,22 @@ function renderConversation() {
     return;
   }
   const needle=$("conversation-search").value.trim().toLocaleLowerCase("fr-FR");
-  const events=p.events.filter(x=>x&&ROLES.has(x.role)&&typeof x.message==="string"
+  const matches=p.events.filter(x=>x&&ROLES.has(x.role)&&typeof x.message==="string"
     &&typeof x.job==="string"&&(x.message.toLocaleLowerCase("fr-FR").includes(needle)||
-      x.job.toLocaleLowerCase("fr-FR").includes(needle))).slice(-1200);
+      x.job.toLocaleLowerCase("fr-FR").includes(needle)));
+  const events=matches.slice(-visibleMessageCount);
   const frag=document.createDocumentFragment();
   if(!events.length)frag.append(el("p","placeholder",p.configured?
     "Aucun message correspondant dans la dernière sauvegarde.":
     "Ce projet n'a pas encore de journal local sauvegardé."));
+  if(matches.length>visibleMessageCount){
+    const more=el("button","older-messages",
+      "Afficher les "+Math.min(250,matches.length-visibleMessageCount)+" messages précédents ("+
+      (matches.length-visibleMessageCount)+" plus anciens)");
+    more.type="button";
+    more.addEventListener("click",()=>{visibleMessageCount+=250;renderConversation();});
+    frag.append(more);
+  }
   for(const e of events) {
     const article=el("article","message role-"+e.role);
     const avatar=el("div","avatar",e.role==="qwen"?"Q":e.role==="chatgpt"?"GPT":"IA");
