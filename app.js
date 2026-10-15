@@ -50,6 +50,24 @@ function shortDate(value) {
     hour:"2-digit",minute:"2-digit"}).format(date);
 }
 function safeProject(id) { return id === "hd" || id === "pc"; }
+const HD_FUTURE_TASKS=[
+  "priorité aux PNG carrés","priorité aux PNG horizontaux","priorité aux PNG verticaux",
+  "priorité aux PNG compacts","priorité aux PNG de taille moyenne",
+  "priorité aux PNG haute résolution","priorité aux formats rectangulaires compacts",
+  "traitement des PNG éligibles restants"
+];
+const PC_FUTURE_TASKS=[
+  "écarts techniques PAL et NTSC-U","feuille de route du portage Windows",
+  "protocole de tests statiques","risques des ressources PAL",
+  "prérequis du pipeline Windows","matrice de validation graphique et audio"
+];
+function knownTaskTitle(id, rawTitle) {
+  const hd=/^hd-texture-run-(\d{4})$/.exec(id||"");
+  const pc=/^pc-research-run-(\d{4})$/.exec(id||"");
+  if(hd&&Number(hd[1])>0)return "Lot HD "+hd[1]+" — "+HD_FUTURE_TASKS[(Number(hd[1])-1)%HD_FUTURE_TASKS.length];
+  if(pc&&Number(pc[1])>0)return "Étude PC "+pc[1]+" — "+PC_FUTURE_TASKS[(Number(pc[1])-1)%PC_FUTURE_TASKS.length];
+  return rawTitle;
+}
 function normalizeStatus(doc) {
   if (!doc || doc.v !== 1 || !Array.isArray(doc.projects)) return null;
   const projects = {};
@@ -62,7 +80,7 @@ function normalizeStatus(doc) {
       tasks:tasks.filter(t=>t && typeof t==="object" && typeof t.title==="string")
         .map(t=>({
           id: typeof t.id==="string"?t.id.slice(0,64):"",
-          title:t.title.slice(0,150),
+          title:knownTaskTitle(t.id,t.title.slice(0,150)),
           status:["completed","active","selected","queued","blocked","unknown"].includes(t.status)
             ? t.status:"unknown",
           done:Number.isInteger(t.done)&&t.done>=0?t.done:null,
@@ -106,8 +124,8 @@ function currentTask(project) {
 function nextTask(project, selected) {
   const tasks=project?.tasks||[];
   if (!selected) return "";
-  if (selected.next) return selected.next;
-  return tasks.find(t=>t!==selected && t.status==="queued")?.title || "";
+  const planned=tasks.find(t=>t!==selected && t.status==="queued");
+  return planned?.title||selected.next||"";
 }
 function statusName(status) {
   return {completed:"Terminé",active:"IA active récemment",selected:"Tâche prioritaire",
