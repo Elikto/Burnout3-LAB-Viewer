@@ -171,14 +171,15 @@ function taskObjective(projectId,task){
   const title=task.title||"";
   if(projectId==="hd"){
     const focus=/^Lot HD [0-9]{4} — (.+)$/.exec(title)?.[1]||"textures PNG éligibles";
-    return "Sélectionner des textures "+focus.replace("priorité aux ","").replace("traitement des ","")+
-      " dans les dumps PCSX2 PAL SLES-52585, les agrandir en ×2 avec Real-ESRGAN "+
-      "et installer uniquement de nouveaux remplacements. Les sources et fichiers existants restent protégés.";
+    return "Traiter jusqu’à "+task.total+" textures PNG éligibles dans les dumps PCSX2 PAL SLES-52585. "+
+      "Critère de priorité : "+focus+". Qwen aide à choisir parmi les fichiers réellement détectés, "+
+      "Real-ESRGAN les agrandit en ×2, puis l’agent installe uniquement de nouveaux remplacements. "+
+      "Aucun dump ni remplacement existant ne doit être écrasé.";
   }
   const subject=/^Étude PC [0-9]{4} — (.+)$/.exec(title)?.[1]||"compatibilité PAL";
   return "Préparer et valider avec Qwen un plan documenté sur « "+subject+
     " » pour l'édition PAL SLES-52585. Comparer les informations techniques disponibles "+
-    "sans supposer que le port Windows est fonctionnel et sans exécuter de code produit par l'IA.";
+    "Le résultat attendu est un JSON structuré en résumé, étapes, risques et données manquantes. Aucune compilation ni exécution de code généré n’est présumée.";
 }
 function taskMilestones(projectId,task){
   if(!task)return [];
@@ -191,7 +192,7 @@ function taskMilestones(projectId,task){
   ];
   return [
     ["Consigne du lot enregistrée",kinds.has("job_observed")||task.done>0],
-    ["Qwen a proposé une sélection",kinds.has("model_response")],
+    ["Une réponse de Qwen a été enregistrée (sélection à vérifier)",kinds.has("model_response")],
     ["Au moins une texture a été traitée",kinds.has("texture_applied")||task.done>0],
     ["Toutes les textures du lot ont été traitées",task.status==="completed"]
   ];
@@ -203,7 +204,9 @@ function taskWorkDetails(projectId,task){
     return box;
   }
   const objective=el("div","work-objective");
-  objective.append(el("span","work-heading","OBJECTIF PRÉCIS"),el("p","",taskObjective(projectId,task)));
+  objective.append(el("span","work-heading","OBJECTIF PRÉCIS"),
+    el("p","work-id","Identifiant : "+task.id),
+    el("p","",taskObjective(projectId,task)));
   box.append(objective);
   const summary=el("div","work-summary");
   summary.append(el("span","work-heading","DERNIÈRE ACTION ENREGISTRÉE"));
