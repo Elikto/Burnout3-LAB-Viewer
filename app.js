@@ -242,6 +242,23 @@ function taskETA(id,t,p){
     "Estimation nominale : un traitement par passage de 15 min. Pas de mesure du débit réel."+old];
 }
 
+function technicalProcess(id,t){
+  if(id==="hd")return [
+    "Inventaire PCSX2 SLES-52585 : lecture IHDR, dimensions PNG, filtre anti-symlink et fichiers déjà traités.",
+    "Sélection des candidats : "+(t.title||"lot").split(" — ").slice(1).join(" — ")+
+      " ; Qwen via Ollama retourne uniquement des indices JSON.",
+    "Upscale NCNN/Vulkan : Real-ESRGAN x4plus en ×2, sans toucher aux dumps originaux.",
+    "Contrôle de sortie : vérifier largeur/hauteur ×2 avant copie exclusive vers replacements.",
+    "Progression : confirmer chaque PNG installé ; prévoir inspection visuelle dans PCSX2."
+  ];
+  return [
+    "Lecture contrôlée des références PAL SLES-52585 et NTSC-U SLUS-21050.",
+    "Construction d'une requête qwen2.5-coder:7b locale via Ollama, sortie JSON structurée.",
+    "Analyse de "+(t.title||"l'étude")+" : hypothèses, dépendances et critères vérifiables.",
+    "Vérification des champs summary, steps, risks, missing_data et next_focus borné.",
+    "Sauvegarde locale du plan de recherche. Aucune compilation ni exécution du jeu affirmée."
+  ];
+}
 function taskWorkDetails(projectId,task){
   const box=el("div","task-work-details");
   if(!task){
