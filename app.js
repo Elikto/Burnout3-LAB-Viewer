@@ -228,8 +228,9 @@ function taskETA(id,t,p){
     return ["Début théorique ≈ "+durationLabel(Math.max(1,steps)*15),
       steps+" cycles supposés de 15 min avant cette tâche. Simulation de file, pas une échéance."+old];
   }
-  if(id==="pc")return ["Durée non mesurée",
-    "Une étude par cycle de 15 min ; durée d'inférence et validation Qwen inconnue."+old];
+  if(id==="pc")return ["Planification : 1 à 2 passages (15 à 30 min)",
+    "Hypothèse nominale : une tentative Qwen par passage programmé de 15 min. "+
+    "La génération, la validation et les reprises peuvent dépasser cette projection."+old];
   const rate=measuredTextureInterval(t);
   if(rate){
     const minutes=Math.max(15,rate.minutes)*workCycles(id,t);
