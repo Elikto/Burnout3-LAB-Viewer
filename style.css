@@ -134,3 +134,16 @@ footer{border-top:1px solid var(--border);font-size:10px;color:#7e91ab;display:f
 @media(max-width:620px){.work-event-list li{grid-template-columns:1fr;gap:0}}
 
 .work-id{font-size:10px!important;color:#8aa9c7!important;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
+
+/* Per-task technical trace and bounded ETA; no simulated live activity. */
+.task-eta{padding:12px 13px;margin-top:3px;border:1px solid #405770;border-radius:10px;background:#14243a}
+.task-eta-value{display:block;margin-top:6px;color:#f4cca1;font-size:19px;line-height:1.3;font-weight:850}
+.task-eta-note{font-size:11px;color:#b6c8db;line-height:1.55;margin:5px 0 0}
+.work-technical{margin-top:4px}
+.technical-steps{margin:8px 0 0;padding-left:21px;display:flex;flex-direction:column;gap:7px;color:#cfdeef;font-size:12px;line-height:1.6}
+.technical-steps li::marker{color:#e4a766;font-weight:800}
+.future-task{margin-top:2px;border-bottom:1px solid #31475f;padding:4px 0 8px}
+.future-task summary{color:#dbe8f7;font-size:12px;line-height:1.5;cursor:pointer;font-weight:750}
+.future-task[open] summary{color:#ffcf93}
+.future-task .technical-steps{font-size:11px;padding-left:19px}
+.future-estimate{font-size:11px;line-height:1.55;color:#9dd0ec;margin:7px 0}
