@@ -104,3 +104,31 @@ footer{border-top:1px solid var(--border);font-size:10px;color:#7e91ab;display:f
 .next-task-block .upcoming-list .queue-empty{color:#9baeca;list-style:none}
 .home-footnote{font-size:10px;color:#7489a6;margin:14px 0 0}
 @media (max-width:900px){.progress-grid{grid-template-columns:1fr}}
+
+/* Detailed, factual task execution trace on the home dashboard. */
+.progress-grid{align-items:start}
+.progress-card{cursor:default;min-height:0}
+.progress-card:hover{transform:none}
+.task-work-details{display:flex;flex-direction:column;gap:14px;margin-top:11px;padding-top:13px;border-top:1px solid #354962}
+.task-work-details>div{min-width:0}
+.work-objective p{margin:5px 0 0;color:#d5e3f2;font-size:12px;line-height:1.65}
+.work-summary{background:#101d2f;border:1px solid #33495f;border-radius:10px;padding:11px 13px}
+.work-summary .work-current{margin:5px 0 2px;font-size:13px;font-weight:700;color:#fff}
+.work-summary .work-timestamp{font-size:10px;color:#91a6be;margin:0}
+.work-step-list,.work-action-list{margin:8px 0 0;padding:0;list-style:none;display:flex;flex-direction:column;gap:5px}
+.work-step-list li{display:flex;gap:9px;align-items:flex-start;font-size:12px;line-height:1.45}
+.work-step-done{color:#9ce0c0}
+.work-step-pending{color:#a0b4ca}
+.work-step-list .step-mark{font-size:14px;font-weight:750;line-height:1.25}
+.work-action-list{padding-left:16px;list-style:disc;color:#c5d4e6;font-size:12px;line-height:1.5}
+.work-muted{font-size:11px;color:#8ea4bd;margin:5px 0}
+.work-event-list{display:flex;flex-direction:column;gap:8px;list-style:none;margin:8px 0 0;padding:0}
+.work-event-list li{display:grid;grid-template-columns:105px 1fr;gap:10px;align-items:start;font-size:11px;color:#c4d3e6;line-height:1.5}
+.work-event-list time{color:#87a1be;white-space:nowrap;font-size:10px}
+.work-controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:5px}
+.work-controls button{font-size:11px;font-weight:750;border-radius:9px;padding:10px 12px;cursor:pointer}
+.work-open-details{background:#25364e;color:#e7f0ff;border:1px solid #526986}
+.work-open-messages{background:transparent;color:#b6d8f2;border:1px solid #4a6a85}
+.work-controls button:hover{background:#304a68}
+.task-details .task-work-details{border-top:1px solid #3f5470;padding-top:15px}
+@media(max-width:620px){.work-event-list li{grid-template-columns:1fr;gap:0}}
