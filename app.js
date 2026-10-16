@@ -469,15 +469,19 @@ function createActivityPreview(projectId,task){
   const taskEvents=task?observed.filter(e=>e.job===task.id):[];
   const directlyObserved=(taskEvents.length?taskEvents:observed).slice(-7).reverse();
   const directMode=liveState!=="off"&&directlyObserved.length>0;
+  const latestElapsed=directMode?Date.now()-Date.parse(directlyObserved[0].time):Infinity;
+  const recentlyActive=latestElapsed>=0&&latestElapsed<180_000;
   const header=el("div","live-preview-head");
   header.append(el("span","work-heading","TERMINAL D'ACTIVITÉ DES AGENTS"),
-    el("span","live-preview-mode",liveState==="connected"?"FLUX DIRECT · SSE":
+    el("span","live-preview-mode",liveState==="connected"?
+      (recentlyActive?"FLUX CONNECTÉ · ACTIVITÉ RÉCENTE":"FLUX CONNECTÉ · EN ATTENTE"):
       liveState==="reconnecting"?"RECONNEXION AU FLUX":liveState==="opening"?
       "CONNEXION EN COURS":"RELEVÉ PUBLIC · NON INSTANTANÉ"));
   area.append(header);
   const description=el("p","live-preview-description",
     directMode?(taskEvents.length?
-      "Commandes et jalons réellement observés pour la tâche prioritaire (chemins masqués).":
+      (recentlyActive?"Dernières commandes observées pour la tâche prioritaire (chemins masqués).":
+      "Derniers événements de cette tâche. Aucune commande actuellement active n'est confirmée.") :
       "Le dernier événement vient d'une autre tâche du projet ; la tâche prioritaire n'a pas encore de signal direct.") :
     data.otherJob?"Aucun message publié pour la tâche prioritaire. Dernière activité du projet : "+data.otherJob:
     "Dernières opérations publiées pour la tâche prioritaire.");
