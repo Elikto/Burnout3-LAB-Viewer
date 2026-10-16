@@ -270,6 +270,16 @@ function taskWorkDetails(projectId,task){
     el("p","work-id","Identifiant : "+task.id),
     el("p","",taskObjective(projectId,task)));
   box.append(objective);
+  const forecast=taskETA(projectId,task,publicStatus?.projects[projectId]);
+  const eta=el("div","task-eta");
+  eta.append(el("span","work-heading","ESTIMATION DU TEMPS RESTANT"),
+    el("strong","task-eta-value",forecast[0]),el("p","task-eta-note",forecast[1]));
+  box.append(eta);
+  const tech=el("div","work-technical");
+  tech.append(el("span","work-heading","PROCESSUS TECHNIQUE DÉTAILLÉ"));
+  const steps=el("ol","technical-steps");
+  for(const line of technicalProcess(projectId,task))steps.append(el("li","",line));
+  tech.append(steps);box.append(tech);
   const summary=el("div","work-summary");
   summary.append(el("span","work-heading","DERNIÈRE ACTION ENREGISTRÉE"));
   const recent=task.actions.timeline.at(-1);
