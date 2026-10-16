@@ -115,10 +115,18 @@ function normalizeActions(value) {
   const input=value&&typeof value==="object"?value:{};
   const array=v=>Array.isArray(v)?v.filter(x=>typeof x==="string"&&x.length>0)
     .slice(0,15).map(x=>x.slice(0,300)):[];
+  const timeline=Array.isArray(input.timeline)?input.timeline.filter(e=>e &&
+    typeof e==="object" && typeof e.time==="string" &&
+    typeof e.summary==="string" && typeof e.kind==="string" && ROLES.has(e.role))
+    .slice(-12).map(e=>({
+      time:e.time.slice(0,60),summary:e.summary.slice(0,300),
+      kind:e.kind.slice(0,60),role:e.role
+    })):[];
   return {
     done:array(input.done),
     current:typeof input.current==="string"?input.current.slice(0,300):"",
-    remaining:array(input.remaining)
+    remaining:array(input.remaining),
+    timeline
   };
 }
 function currentTask(project) {
@@ -158,6 +166,96 @@ async function loadPublicStatus() {
   renderHome();
   if (safeProject(activeView)) renderProgressView(activeView);
 }
+function taskObjective(projectId,task){
+  if(!task)return "Aucun objectif de travail reçu.";
+  const title=task.title||"";
+  if(projectId==="hd"){
+    const focus=/^Lot HD [0-9]{4} — (.+)$/.exec(title)?.[1]||"textures PNG éligibles";
+    return "Sélectionner des textures "+focus.replace("priorité aux ","").replace("traitement des ","")+
+      " dans les dumps PCSX2 PAL SLES-52585, les agrandir en ×2 avec Real-ESRGAN "+
+      "et installer uniquement de nouveaux remplacements. Les sources et fichiers existants restent protégés.";
+  }
+  const subject=/^Étude PC [0-9]{4} — (.+)$/.exec(title)?.[1]||"compatibilité PAL";
+  return "Préparer et valider avec Qwen un plan documenté sur « "+subject+
+    " » pour l'édition PAL SLES-52585. Comparer les informations techniques disponibles "+
+    "sans supposer que le port Windows est fonctionnel et sans exécuter de code produit par l'IA.";
+}
+function taskMilestones(projectId,task){
+  if(!task)return [];
+  const kinds=new Set((task.actions.timeline||[]).map(e=>e.kind));
+  if(projectId==="pc")return [
+    ["Consigne enregistrée",kinds.has("job_observed")||task.status==="completed"],
+    ["Analyse demandée à Qwen",kinds.has("model_request")||task.status==="completed"],
+    ["Réponse structurée reçue",kinds.has("model_response")||task.status==="completed"],
+    ["Plan validé et sauvegardé",kinds.has("validation_passed")||task.status==="completed"]
+  ];
+  return [
+    ["Consigne du lot enregistrée",kinds.has("job_observed")||task.done>0],
+    ["Qwen a proposé une sélection",kinds.has("model_response")],
+    ["Au moins une texture a été traitée",kinds.has("texture_applied")||task.done>0],
+    ["Toutes les textures du lot ont été traitées",task.status==="completed"]
+  ];
+}
+function taskWorkDetails(projectId,task){
+  const box=el("div","task-work-details");
+  if(!task){
+    box.append(el("p","placeholder","Aucune tâche vérifiée pour le moment."));
+    return box;
+  }
+  const objective=el("div","work-objective");
+  objective.append(el("span","work-heading","OBJECTIF PRÉCIS"),el("p","",taskObjective(projectId,task)));
+  box.append(objective);
+  const summary=el("div","work-summary");
+  summary.append(el("span","work-heading","DERNIÈRE ACTION ENREGISTRÉE"));
+  const recent=task.actions.timeline.at(-1);
+  summary.append(el("p","work-current",recent?.summary||
+    (task.actions.current||"Aucune action détaillée enregistrée.")));
+  summary.append(el("p","work-timestamp",recent?
+    formatDate(recent.time)+" · "+labelRole(recent.role):
+    "Aucun événement horodaté pour cette tâche"));
+  box.append(summary);
+  const phases=el("div","work-phases");
+  phases.append(el("span","work-heading","ÉTAPES DE L’AGENT"));
+  const steps=el("ul","work-step-list");
+  for(const [title,done] of taskMilestones(projectId,task)){
+    const item=el("li",done?"work-step-done":"work-step-pending");
+    item.append(el("span","step-mark",done?"✓":"○"),el("span","",title));
+    steps.append(item);
+  }
+  phases.append(steps);box.append(phases);
+  const accomplished=el("div","work-accomplished");
+  accomplished.append(el("span","work-heading","DÉJÀ EFFECTUÉ"));
+  const accomplishedList=el("ul","work-action-list");
+  for(const entry of (task.actions.done||[]).slice(0,6))
+    accomplishedList.append(el("li","",entry));
+  if(!accomplishedList.children.length)
+    accomplishedList.append(el("li","work-muted","Aucun traitement confirmé."));
+  accomplished.append(accomplishedList);box.append(accomplished);
+  const remaining=el("div","work-remaining");
+  remaining.append(el("span","work-heading","RESTANT À FAIRE"));
+  const remainingList=el("ul","work-action-list");
+  for(const entry of (task.actions.remaining||[]).slice(0,6))
+    remainingList.append(el("li","",entry));
+  if(!remainingList.children.length)
+    remainingList.append(el("li","work-muted","Étapes restantes non précisées."));
+  remaining.append(remainingList);box.append(remaining);
+  const timeline=el("div","work-activity");
+  timeline.append(el("span","work-heading","JOURNAL HORODATÉ DE CETTE TÂCHE"));
+  const events=task.actions.timeline||[];
+  if(!events.length)timeline.append(el("p","work-muted","Aucune action horodatée reçue."));
+  else {
+    const list=el("ol","work-event-list");
+    for(const entry of events.slice(-8).reverse()){
+      const item=el("li","");
+      item.append(el("time","",shortDate(entry.time)),
+        el("span","",entry.summary));
+      list.append(item);
+    }
+    timeline.append(list);
+  }
+  box.append(timeline);
+  return box;
+}
 function renderHome() {
   const status=publicStatus;
   const fresh=Boolean(status)&&!isStale(status.generated_at);
@@ -177,9 +275,8 @@ function renderHome() {
     const pending=(project?.tasks||[]).filter(t=>t!==task && t.status==="queued");
     const next=pending[0]||null;
     const progress=progressValue(task);
-    const card=el("button","progress-card "+id);
-    card.type="button";
-    card.setAttribute("aria-label","Détails des tâches de "+PROJECTS[id].title);
+    const card=el("section","progress-card "+id);
+    card.setAttribute("aria-label","Suivi du projet "+PROJECTS[id].title);
     const top=el("div","progress-card-top");
     const identity=el("div","card-project");
     identity.append(el("span","",id.toUpperCase()),el("strong","",PROJECTS[id].title));
@@ -188,7 +285,7 @@ function renderHome() {
       el("h2","task-name",task?task.title:"Aucune tâche reçue depuis Windows"));
     const caption=el("div","progress-caption");
     caption.append(el("span","",progress===null?"Progression non mesurée":"Avancement de la tâche"),
-      el("strong","",progress===null?"—":progress+" %"));
+      el("strong","",progress===null?"—":task.done+" / "+task.total+" · "+progress+" %"));
     const track=el("div","progress-track");
     const fill=el("div","progress-fill");
     fill.style.width=progress===null?"0%":progress+"%";
@@ -197,6 +294,7 @@ function renderHome() {
     if(task && task.status!=="active")card.append(el("p","agent-activity-hint","Tâche assignée, exécution IA non confirmée au dernier relevé."));
 
 
+    card.append(taskWorkDetails(id,task));
     const upcoming=el("div","next-task-block");
     upcoming.append(el("span","work-heading","PROCHAINE TÂCHE"),
       el("strong","next-task-title",next?.title||"Aucune prochaine tâche confirmée"),
@@ -205,8 +303,19 @@ function renderHome() {
     for(const item of pending.slice(0,8))list.append(el("li","",item.title));
     if(pending.length===0)list.append(el("li","queue-empty","Aucune prochaine tâche encore synchronisée"));
     upcoming.append(list);
-    card.append(upcoming,el("div","progress-foot","Voir les actions effectuées et les étapes restantes →"));
-    card.addEventListener("click",()=>openTaskDrawer(id,task));
+    const controls=el("div","work-controls");
+    const detailButton=el("button","work-open-details","Détails et prochaines actions →");
+    detailButton.type="button";
+    detailButton.addEventListener("click",()=>openTaskDrawer(id,task));
+    const messagesButton=el("button","work-open-messages","Voir les échanges IA de cette tâche ↗");
+    messagesButton.type="button";
+    messagesButton.addEventListener("click",()=>{
+      navigate(id);
+      $("conversation-search").value=task?.id||"";
+      renderConversation();
+    });
+    controls.append(detailButton,messagesButton);
+    card.append(upcoming,controls);
     cards.append(card);
   }
   $("progress-grid").replaceChildren(cards);
@@ -243,6 +352,7 @@ function detailElement(projectId,task) {
   block("Actions déjà réalisées",task.actions.done,"done");
   block("Dernière action signalée",task.actions.current?[task.actions.current]:[],"current");
   block("Ce qui reste à faire",task.actions.remaining,"next");
+  container.append(taskWorkDetails(projectId,task));
   const next=nextTask(publicStatus?.projects[projectId],task);
   if(next) container.append(el("p","drawer-warning","Prochaine tâche : "+next));
   if(task.updated_at) container.append(el("p","drawer-warning","Dernier signal enregistré : "+formatDate(task.updated_at)+". Cela ne prouve pas qu'un traitement est actuellement en cours."));
