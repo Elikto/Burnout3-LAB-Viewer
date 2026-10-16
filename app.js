@@ -23,6 +23,10 @@ let visibleMessageCount = 250;
 let activeView = "home";
 let activeTab = "messages";
 let selectedTask = null;
+let liveSource = null;
+let liveState = "off";
+const liveFeed = {hd:[],pc:[]};
+
 
 function labelRole(role) {
   return {qwen:"Qwen · modèle local",chatgpt:"Consigne GitHub",
@@ -345,6 +349,78 @@ function taskWorkDetails(projectId,task){
   return box;
 }
 // Show concise excerpts ONLY from conversations already approved for public reading.
+function safeLiveURL(raw){
+  try {
+    const url=new URL(String(raw||"").trim());
+    if(url.protocol!=="https:" || !url.hostname.toLowerCase().endsWith(".ts.net") ||
+       !/^[a-z0-9.-]+$/.test(url.hostname) ||
+       (url.port && !["443","8443","10000"].includes(url.port)) ||
+       url.username||url.password||url.search||url.hash||
+       (url.pathname!=="/"&&url.pathname!==""))return null;
+    return url.origin;
+  }catch(_){return null;}
+}
+function showLiveState(){
+  const mode={
+    off:"Journal GitHub uniquement · pas de liaison directe",
+    opening:"Connexion au relais Windows en cours…",
+    connected:"Relais Windows connecté · événements transmis dès leur journalisation",
+    reconnecting:"Relais indisponible · tentative de reconnexion automatique"
+  };
+  $("live-connection-state").textContent=mode[liveState]||mode.off;
+  $("live-connection-state").dataset.state=liveState;
+  $("live-connect").classList.toggle("hidden",liveState==="connected");
+  $("live-disconnect").classList.toggle("hidden",liveState==="off");
+}
+function disconnectLive(){
+  if(liveSource)liveSource.close();
+  liveSource=null;
+  liveState="off";
+  liveFeed.hd=[];liveFeed.pc=[];
+  showLiveState();renderHome();
+}
+function connectLive(raw){
+  const base=safeLiveURL(raw);
+  if(!base){
+    $("live-connection-state").textContent="URL refusée : HTTPS *.ts.net uniquement, sans identifiants.";
+    return;
+  }
+  if(liveSource)liveSource.close();
+  liveFeed.hd=[];liveFeed.pc=[];
+  liveState="opening";
+  $("live-endpoint").value=base;
+  showLiveState();renderHome();
+  const source=new EventSource(base+"/events");
+  liveSource=source;
+  source.onopen=()=>{
+    if(liveSource!==source)return;
+    liveState="connected";showLiveState();renderHome();
+  };
+  source.onerror=()=>{
+    if(liveSource!==source)return;
+    liveState="reconnecting";showLiveState();renderHome();
+  };
+  source.onmessage=event=>{
+    if(liveSource!==source||typeof event.data!=="string"||event.data.length>2000)return;
+    let data;
+    try{data=JSON.parse(event.data);}catch(_){return;}
+    if(!data||!safeProject(data.project)||
+       typeof data.job!=="string"||!/[a-z0-9][a-z0-9-]{0,49}/.test(data.job)||
+       typeof data.time!=="string"||!Number.isFinite(Date.parse(data.time))||
+       typeof data.label!=="string"||typeof data.command!=="string"||
+       !ROLES.has(data.role))return;
+    const events=liveFeed[data.project];
+    if(events.some(x=>x.id===data.id))return;
+    events.push({
+      id:String(data.id||"").slice(0,30),
+      job:data.job.slice(0,50),time:data.time.slice(0,50),
+      label:data.label.slice(0,180),command:data.command.slice(0,250),
+      role:data.role,kind:String(data.kind||"").slice(0,50)
+    });
+    if(events.length>35)events.splice(0,events.length-35);
+    renderHome();
+  };
+}
 function publicPreviewMessage(projectId,event){
   if(!event||typeof event.message!=="string")return "";
   if(event.kind==="model_response" && event.role==="qwen"){
