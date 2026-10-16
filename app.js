@@ -197,6 +197,29 @@ function taskMilestones(projectId,task){
     ["Toutes les textures du lot ont été traitées",task.status==="completed"]
   ];
 }
+function durationLabel(m){
+  const n=Math.max(1,Math.round(m));
+  return n<60?n+" min":Math.floor(n/60)+" h"+(n%60?" "+n%60+" min":"");
+}
+function workCycles(id,t){
+  return id==="hd"?Math.max(0,(t.total||0)-(t.done||0)):1;
+}
+function taskETA(id,t,p){
+  if(!t)return ["Indisponible","Aucun statut reçu."];
+  if(t.status==="completed")return ["Terminée","Validation enregistrée."];
+  if(t.status==="blocked")return ["Non estimable","Tâche bloquée."];
+  const old=Date.now()-Date.parse(publicStatus?.generated_at||"")>2100000?" Données anciennes.":"";
+  if(t.status==="queued"){
+    const ordered=(p?.tasks||[]).filter(x=>["active","selected","queued"].includes(x.status));
+    const steps=ordered.slice(0,Math.max(0,ordered.indexOf(t))).reduce((n,x)=>n+workCycles(id,x),0);
+    return ["Début théorique ≈ "+durationLabel(Math.max(1,steps)*15),
+      steps+" cycles supposés de 15 min avant cette tâche. Simulation de file, pas une échéance."+old];
+  }
+  if(id==="pc")return ["Durée non mesurée",
+    "Une étude par cycle de 15 min ; durée d'inférence et validation Qwen inconnue."+old];
+  return ["Calcul en cours","Besoin des derniers traitements horodatés pour calculer le rythme."+old];
+}
+
 function taskWorkDetails(projectId,task){
   const box=el("div","task-work-details");
   if(!task){
