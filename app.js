@@ -204,7 +204,7 @@ function taskWorkDetails(projectId,task){
     return box;
   }
   const objective=el("div","work-objective");
-  objective.append(el("span","work-heading","OBJECTIF PRÉCIS"),
+  objective.append(el("span","work-heading","OBJECTIF TECHNIQUE PRÉCIS"),
     el("p","work-id","Identifiant : "+task.id),
     el("p","",taskObjective(projectId,task)));
   box.append(objective);
