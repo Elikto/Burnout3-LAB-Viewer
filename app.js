@@ -172,7 +172,7 @@ function taskObjective(projectId,task){
   if(projectId==="hd"){
     const focus=/^Lot HD [0-9]{4} — (.+)$/.exec(title)?.[1]||"textures PNG éligibles";
     return "Traiter jusqu’à "+task.total+" textures PNG éligibles dans les dumps PCSX2 PAL SLES-52585. "+
-      "Critère de priorité : "+focus+". Qwen aide à choisir parmi les fichiers réellement détectés, "+
+      "Critère de priorité : "+focus+" (IHDR : "+technicalFilter(title)+"). Qwen aide à choisir parmi les fichiers réellement détectés, "+
       "Real-ESRGAN les agrandit en ×2, puis l’agent installe uniquement de nouveaux remplacements. "+
       "Aucun dump ni remplacement existant ne doit être écrasé.";
   }
