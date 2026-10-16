@@ -703,13 +703,19 @@ async function loadPublicArchive(){
        doc.projects.length!==2||doc.projects[0]?.id!=="hd"||doc.projects[1]?.id!=="pc")throw Error("invalid");
     archive=doc;
     renderConversation();
+    renderHome();
   }catch(error){
-    archive=null;renderConversation();
+    // Preserve the last valid approved snapshot during transient network errors.
+    renderConversation();renderHome();
     console.warn("Burnout3 LAB: public conversations unavailable",error?.message||"unknown");
   }
 }
 navigate(viewFromHash());
 loadPublicStatus();
 loadPublicArchive();
-setInterval(loadPublicArchive,120_000);
-setInterval(loadPublicStatus,60_000);
+// Poll public static JSON; the Windows publishing schedule, not polling,
+// determines when new messages actually become available.
+setInterval(()=>{if(!document.hidden){loadPublicStatus();loadPublicArchive();}},30_000);
+document.addEventListener("visibilitychange",()=>{
+  if(!document.hidden){loadPublicStatus();loadPublicArchive();}
+});
