@@ -375,7 +375,18 @@ function renderHome() {
       el("strong","next-task-title",next?.title||"Aucune prochaine tâche confirmée"),
       el("div","queue-count",pending.length>=5 ? pending.length+" prochaines tâches planifiées" : pending.length+" / 5 tâches futures planifiées · réserve à compléter"));
     const list=el("ol","upcoming-list");
-    for(const item of pending.slice(0,8))list.append(el("li","",item.title));
+    for(const item of pending.slice(0,8)){
+      const li=el("li","");
+      const details=el("details","future-task");
+      details.append(el("summary","",item.title));
+      const timing=taskETA(id,item,project);
+      details.append(el("p","future-estimate",timing[0]+" — "+timing[1]));
+      const steps=el("ol","technical-steps");
+      for(const stage of technicalProcess(id,item))steps.append(el("li","",stage));
+      details.append(steps);
+      li.append(details);
+      list.append(li);
+    }
     if(pending.length===0)list.append(el("li","queue-empty","Aucune prochaine tâche encore synchronisée"));
     upcoming.append(list);
     const controls=el("div","work-controls");
