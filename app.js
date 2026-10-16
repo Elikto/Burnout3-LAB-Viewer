@@ -243,6 +243,17 @@ function taskETA(id,t,p){
     "Estimation nominale : un traitement par passage de 15 min. Pas de mesure du débit réel."+old];
 }
 
+function technicalFilter(title){
+  const s=(title||"").toLowerCase();
+  if(s.includes("carrés"))return "largeur = hauteur";
+  if(s.includes("horizontaux"))return "largeur > hauteur";
+  if(s.includes("verticaux"))return "hauteur > largeur";
+  if(s.includes("compacts"))return "dimension maximale ≤ 128 px";
+  if(s.includes("taille moyenne"))return "128 < dimension maximale ≤ 256 px";
+  if(s.includes("haute résolution"))return "dimension maximale > 256 px";
+  if(s.includes("rectangulaires"))return "largeur ≠ hauteur, petit côté ≤ 128 px";
+  return "fichiers PNG non encore remplacés";
+}
 function technicalProcess(id,t){
   if(id==="hd")return [
     "Inventaire PCSX2 SLES-52585 : lecture IHDR, dimensions PNG, filtre anti-symlink et fichiers déjà traités.",
