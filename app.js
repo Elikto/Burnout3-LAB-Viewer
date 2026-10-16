@@ -344,6 +344,90 @@ function taskWorkDetails(projectId,task){
   box.append(timeline);
   return box;
 }
+// Show concise excerpts ONLY from conversations already approved for public reading.
+function publicPreviewMessage(projectId,event){
+  if(!event||typeof event.message!=="string")return "";
+  if(event.kind==="model_response" && event.role==="qwen"){
+    let data;
+    try{data=JSON.parse(event.message);}catch(_){return "Qwen a répondu (détails non structurés).";}
+    if(!data||typeof data!=="object")return "Réponse Qwen enregistrée.";
+    if(projectId==="hd"){
+      const count=Array.isArray(data.indices)?data.indices.filter(Number.isInteger).length:0;
+      const focus=Number.isInteger(data.next_focus)&&data.next_focus>=1&&data.next_focus<=8?
+        " · prochaine priorité suggérée : "+data.next_focus:"";
+      return count?"Qwen propose "+count+" indice"+(count>1?"s":"")+" de texture"+(count>1?"s":"")+focus:
+        "Qwen a répondu ; sélection non détaillée.";
+    }
+    if(typeof data.summary==="string")return "Synthèse Qwen : "+data.summary.slice(0,310);
+    return "Qwen a transmis un plan JSON.";
+  }
+  const allowed=new Set(["texture_started","texture_validated","texture_applied",
+    "texture_failed","selection_fallback","validation_passed","validation_failed",
+    "model_error","plan_saved","plan_validating","context_loaded"]);
+  if(event.role==="agent"&&allowed.has(event.kind))return event.message.slice(0,260);
+  return "";
+}
+function taskPublicPreview(projectId,task){
+  const project=archive?.projects?.find(p=>p.id===projectId);
+  const valid=project?.configured && Array.isArray(project.events);
+  if(!task||!valid)return {items:[],otherJob:"",time:archive?.generated_at||null};
+  const events=project.events.filter(e=>e&&typeof e.job==="string"&&
+    typeof e.time==="string"&&ROLES.has(e.role)&&typeof e.kind==="string");
+  let selected=events.filter(e=>e.job===task.id);
+  let otherJob="";
+  if(!selected.length){
+    const last=events.slice().reverse().find(e=>publicPreviewMessage(projectId,e));
+    if(last){
+      selected=events.filter(e=>e.job===last.job);
+      otherJob=last.job;
+    }
+  }
+  const items=selected.map(e=>({time:e.time,role:e.role,
+    message:publicPreviewMessage(projectId,e)})).filter(e=>e.message).slice(-5);
+  return {items,otherJob,time:archive.generated_at};
+}
+function createActivityPreview(projectId,task){
+  const data=taskPublicPreview(projectId,task);
+  const area=el("section","live-preview");
+  const header=el("div","live-preview-head");
+  header.append(el("span","work-heading","APERÇU DU TRAVAIL DES IA"),
+    el("span","live-preview-mode","RELEVÉ PUBLIC · NON INSTANTANÉ"));
+  area.append(header);
+  const description=el("p","live-preview-description",
+    data.otherJob?"Aucun message publié pour la tâche prioritaire. Dernière activité du projet : "+data.otherJob:
+    "Dernières opérations associées à la tâche prioritaire.");
+  area.append(description);
+  const stream=el("div","live-preview-console");
+  stream.setAttribute("aria-label","Dernières actions publiées par les agents");
+  if(data.items.length){
+    for(const event of data.items){
+      const line=el("div","live-preview-line");
+      line.append(el("time","live-preview-time",shortDate(event.time)),
+        el("span","live-preview-role",event.role==="qwen"?"QWEN":"AGENT"),
+        el("span","live-preview-message",event.message));
+      stream.append(line);
+    }
+  }else if(task?.actions?.timeline?.length){
+    for(const event of task.actions.timeline.slice(-4)){
+      const line=el("div","live-preview-line");
+      line.append(el("time","live-preview-time",shortDate(event.time)),
+        el("span","live-preview-role",event.role==="qwen"?"QWEN":"AGENT"),
+        el("span","live-preview-message",event.summary));
+      stream.append(line);
+    }
+  }else stream.append(el("p","live-preview-empty",
+    "Aucun événement publié pour cette tâche. L'agent peut être en attente de son prochain passage."));
+  area.append(stream);
+  const foot=el("div","live-preview-footer");
+  foot.append(el("span","",data.time?"Conversations synchronisées : "+formatDate(data.time):
+    "Aucune conversation publique synchronisée"));
+  const refresh=el("button","live-preview-refresh","↻ Actualiser");
+  refresh.type="button";
+  refresh.addEventListener("click",()=>{loadPublicStatus();loadPublicArchive();});
+  foot.append(refresh);
+  area.append(foot);
+  return area;
+}
 function renderHome() {
   const status=publicStatus;
   const fresh=Boolean(status)&&!isStale(status.generated_at);
