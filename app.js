@@ -217,7 +217,8 @@ function taskETA(id,t,p){
   }
   if(id==="pc")return ["Durée non mesurée",
     "Une étude par cycle de 15 min ; durée d'inférence et validation Qwen inconnue."+old];
-  return ["Calcul en cours","Besoin des derniers traitements horodatés pour calculer le rythme."+old];
+  return ["Hypothèse ≈ "+durationLabel(workCycles(id,t)*15),
+    "Estimation nominale : un traitement par passage de 15 min. Pas de mesure du débit réel."+old];
 }
 
 function taskWorkDetails(projectId,task){
