@@ -375,7 +375,7 @@ function taskPublicPreview(projectId,task){
     typeof e.time==="string"&&ROLES.has(e.role)&&typeof e.kind==="string");
   let selected=events.filter(e=>e.job===task.id);
   let otherJob="";
-  if(!selected.length){
+  if(!selected.length && !(task.actions?.timeline||[]).length){
     const last=events.slice().reverse().find(e=>publicPreviewMessage(projectId,e));
     if(last){
       selected=events.filter(e=>e.job===last.job);
