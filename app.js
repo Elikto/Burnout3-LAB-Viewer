@@ -797,6 +797,12 @@ document.addEventListener("keydown",e=>{if(e.key==="Escape")closeTaskDrawer()});
 $("conversation-search").addEventListener("input",renderConversation);
 $("prompt-submit").addEventListener("click",openPrompt);
 $("connect-btn").addEventListener("click",()=>window.open("https://github.com/login","_blank","noopener,noreferrer"));
+$("live-connect").addEventListener("click",()=>connectLive($("live-endpoint").value));
+$("live-disconnect").addEventListener("click",disconnectLive);
+$("live-endpoint").addEventListener("keydown",event=>{
+  if(event.key==="Enter"){event.preventDefault();connectLive($("live-endpoint").value);}
+});
+showLiveState();
 // Reading publicly published messages never requires GitHub authentication.
 async function loadPublicArchive(){
   try{
@@ -817,6 +823,12 @@ async function loadPublicArchive(){
 navigate(viewFromHash());
 loadPublicStatus();
 loadPublicArchive();
+// A shareable, public Funnel URL can prefill the connection. No credentials in URLs.
+const configuredLive=new URLSearchParams(window.location.search).get("live");
+if(configuredLive&&safeLiveURL(configuredLive)){
+  $("live-endpoint").value=safeLiveURL(configuredLive);
+  connectLive(configuredLive);
+}
 // Poll public static JSON; the Windows publishing schedule, not polling,
 // determines when new messages actually become available.
 setInterval(()=>{if(!document.hidden){loadPublicStatus();loadPublicArchive();}},30_000);
