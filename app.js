@@ -400,7 +400,7 @@ function createActivityPreview(projectId,task){
   const stream=el("div","live-preview-console");
   stream.setAttribute("aria-label","Dernières actions publiées par les agents");
   if(data.items.length){
-    for(const event of data.items){
+    for(const event of data.items.slice().reverse()){ 
       const line=el("div","live-preview-line");
       line.append(el("time","live-preview-time",shortDate(event.time)),
         el("span","live-preview-role",event.role==="qwen"?"QWEN":"AGENT"),
@@ -408,7 +408,7 @@ function createActivityPreview(projectId,task){
       stream.append(line);
     }
   }else if(task?.actions?.timeline?.length){
-    for(const event of task.actions.timeline.slice(-4)){
+    for(const event of task.actions.timeline.slice(-4).reverse()){ 
       const line=el("div","live-preview-line");
       line.append(el("time","live-preview-time",shortDate(event.time)),
         el("span","live-preview-role",event.role==="qwen"?"QWEN":"AGENT"),
@@ -440,6 +440,9 @@ function renderHome() {
   $("sync-dot").className="dot"+(status?(fresh?" ready":" stale"):"");
   $("sync-dot-home").className="dot"+(status?(fresh?" ready":" stale"):"");
 
+  // Preserve expanded upcoming-task details during automatic refresh.
+  const expanded=new Set([...$("progress-grid").querySelectorAll("details.future-task[open]")]
+    .map(e=>e.dataset.taskId));
   const cards=document.createDocumentFragment();
   for(const id of ["hd","pc"]) {
     const project=status?.projects[id];
@@ -476,6 +479,8 @@ function renderHome() {
     for(const item of pending.slice(0,8)){
       const li=el("li","");
       const details=el("details","future-task");
+      details.dataset.taskId=id+":"+item.id;
+      details.open=expanded.has(details.dataset.taskId);
       details.append(el("summary","",item.title));
       const timing=taskETA(id,item,project);
       details.append(el("p","future-estimate",timing[0]+" — "+timing[1]));
