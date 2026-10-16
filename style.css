@@ -132,3 +132,5 @@ footer{border-top:1px solid var(--border);font-size:10px;color:#7e91ab;display:f
 .work-controls button:hover{background:#304a68}
 .task-details .task-work-details{border-top:1px solid #3f5470;padding-top:15px}
 @media(max-width:620px){.work-event-list li{grid-template-columns:1fr;gap:0}}
+
+.work-id{font-size:10px!important;color:#8aa9c7!important;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;word-break:break-all}
