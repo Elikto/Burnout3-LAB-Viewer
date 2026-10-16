@@ -230,6 +230,14 @@ function taskETA(id,t,p){
   }
   if(id==="pc")return ["Durée non mesurée",
     "Une étude par cycle de 15 min ; durée d'inférence et validation Qwen inconnue."+old];
+  const rate=measuredTextureInterval(t);
+  if(rate){
+    const minutes=Math.max(15,rate.minutes)*workCycles(id,t);
+    return ["Reste ≈ "+durationLabel(minutes),
+      "Fourchette indicative : "+durationLabel(minutes*0.8)+" à "+
+      durationLabel(minutes*1.6)+". Estimé avec "+rate.samples+
+      " copies réelles. Le rythme peut changer selon fichiers, GPU, veille."+old];
+  }
   return ["Hypothèse ≈ "+durationLabel(workCycles(id,t)*15),
     "Estimation nominale : un traitement par passage de 15 min. Pas de mesure du débit réel."+old];
 }
