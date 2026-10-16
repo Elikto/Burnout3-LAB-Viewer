@@ -147,3 +147,21 @@ footer{border-top:1px solid var(--border);font-size:10px;color:#7e91ab;display:f
 .future-task[open] summary{color:#ffcf93}
 .future-task .technical-steps{font-size:11px;padding-left:19px}
 .future-estimate{font-size:11px;line-height:1.55;color:#9dd0ec;margin:7px 0}
+
+/* Verifiable, privacy-limited activity preview immediately under each progress bar. */
+.live-preview{border:1px solid #344861;background:#0b1727;border-radius:12px;margin-top:12px;overflow:hidden}
+.live-preview-head{display:flex;align-items:center;justify-content:space-between;gap:8px;padding:11px 12px 3px;flex-wrap:wrap}
+.live-preview-mode{font-size:9px;color:#f3c888;letter-spacing:.09em;font-weight:800}
+.live-preview-description{font-size:11px;color:#9db0c7;margin:2px 12px 10px;line-height:1.5}
+.live-preview-console{padding:10px 11px;max-height:240px;overflow-y:auto;background:#07121f;border-top:1px solid #273b54;border-bottom:1px solid #273b54}
+.live-preview-line{display:grid;grid-template-columns:85px 46px minmax(0,1fr);gap:9px;padding:8px 0;border-bottom:1px solid #1c2c40;align-items:start;font-family:ui-monospace,SFMono-Regular,Consolas,monospace;font-size:10px;line-height:1.6}
+.live-preview-line:last-child{border-bottom:0}
+.live-preview-time{font-size:10px;color:#829ab7;white-space:nowrap}
+.live-preview-role{color:#ffd092;font-weight:800}
+.progress-card.pc .live-preview-role{color:#8cdef2}
+.live-preview-message{color:#deedfd;white-space:pre-wrap;overflow-wrap:anywhere;word-break:normal}
+.live-preview-empty{color:#a5b8d0;margin:3px 2px;font-size:11px}
+.live-preview-footer{display:flex;align-items:center;justify-content:space-between;gap:10px;flex-wrap:wrap;padding:8px 12px;font-size:10px;color:#8ca2bb}
+.live-preview-refresh{border:1px solid #4e6885;border-radius:7px;color:#e0eeff;background:#1e3049;padding:5px 10px;font-size:10px;font-weight:700}
+.live-preview-refresh:hover{background:#2a4461}
+@media(max-width:650px){.live-preview-line{grid-template-columns:1fr 1fr;gap:2px 8px}.live-preview-message{grid-column:1/-1}.live-preview-time{font-size:9px}}
