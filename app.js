@@ -463,6 +463,7 @@ function renderHome() {
     fill.style.width=progress===null?"0%":progress+"%";
     track.append(fill);
     card.append(caption,track);
+    card.append(createActivityPreview(id,task));
     if(task && task.status!=="active")card.append(el("p","agent-activity-hint","Tâche assignée, exécution IA non confirmée au dernier relevé."));
 
 
