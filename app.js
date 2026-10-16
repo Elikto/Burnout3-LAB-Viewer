@@ -204,6 +204,19 @@ function durationLabel(m){
 function workCycles(id,t){
   return id==="hd"?Math.max(0,(t.total||0)-(t.done||0)):1;
 }
+function measuredTextureInterval(t){
+  const times=(t.actions.timeline||[]).filter(e=>e.kind==="texture_applied")
+    .map(e=>Date.parse(e.time)).filter(Number.isFinite).sort((a,b)=>a-b);
+  if(times.length<2)return null;
+  const gaps=[];
+  for(let i=1;i<times.length;i++){
+    const min=(times[i]-times[i-1])/60000;
+    if(min>=0.5&&min<=120)gaps.push(min);
+  }
+  if(!gaps.length)return null;
+  gaps.sort((a,b)=>a-b);
+  return {minutes:gaps[Math.floor(gaps.length/2)],samples:times.length};
+}
 function taskETA(id,t,p){
   if(!t)return ["Indisponible","Aucun statut reçu."];
   if(t.status==="completed")return ["Terminée","Validation enregistrée."];
