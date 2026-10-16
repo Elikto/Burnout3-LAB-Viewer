@@ -465,17 +465,37 @@ function taskPublicPreview(projectId,task){
 function createActivityPreview(projectId,task){
   const data=taskPublicPreview(projectId,task);
   const area=el("section","live-preview");
+  const observed=liveFeed[projectId]||[];
+  const taskEvents=task?observed.filter(e=>e.job===task.id):[];
+  const directlyObserved=(taskEvents.length?taskEvents:observed).slice(-7).reverse();
+  const directMode=liveState!=="off"&&directlyObserved.length>0;
   const header=el("div","live-preview-head");
-  header.append(el("span","work-heading","APERÇU DU TRAVAIL DES IA"),
-    el("span","live-preview-mode","RELEVÉ PUBLIC · NON INSTANTANÉ"));
+  header.append(el("span","work-heading","TERMINAL D'ACTIVITÉ DES AGENTS"),
+    el("span","live-preview-mode",liveState==="connected"?"FLUX DIRECT · SSE":
+      liveState==="reconnecting"?"RECONNEXION AU FLUX":liveState==="opening"?
+      "CONNEXION EN COURS":"RELEVÉ PUBLIC · NON INSTANTANÉ"));
   area.append(header);
   const description=el("p","live-preview-description",
+    directMode?(taskEvents.length?
+      "Commandes et jalons réellement observés pour la tâche prioritaire (chemins masqués).":
+      "Le dernier événement vient d'une autre tâche du projet ; la tâche prioritaire n'a pas encore de signal direct.") :
     data.otherJob?"Aucun message publié pour la tâche prioritaire. Dernière activité du projet : "+data.otherJob:
-    "Dernières opérations associées à la tâche prioritaire.");
+    "Dernières opérations publiées pour la tâche prioritaire.");
   area.append(description);
   const stream=el("div","live-preview-console");
   stream.setAttribute("aria-label","Dernières actions publiées par les agents");
-  if(data.items.length){
+  if(directMode){
+    for(const event of directlyObserved){
+      const line=el("div","live-preview-line live-command");
+      const message=el("div","live-preview-message");
+      message.append(el("strong","",event.label));
+      message.append(el("code","live-command-text","$ "+event.command));
+      if(task&&event.job!==task.id)message.append(el("span","live-command-job","Autre tâche : "+event.job));
+      line.append(el("time","live-preview-time",shortDate(event.time)),
+        el("span","live-preview-role",event.role==="qwen"?"QWEN":"AGENT"),message);
+      stream.append(line);
+    }
+  }else if(data.items.length){
     for(const event of data.items.slice().reverse()){ 
       const line=el("div","live-preview-line");
       line.append(el("time","live-preview-time",shortDate(event.time)),
@@ -495,7 +515,10 @@ function createActivityPreview(projectId,task){
     "Aucun événement publié pour cette tâche. L'agent peut être en attente de son prochain passage."));
   area.append(stream);
   const foot=el("div","live-preview-footer");
-  foot.append(el("span","",data.time?"Conversations synchronisées : "+formatDate(data.time):
+  foot.append(el("span","",directMode?
+    "Dernière activité relayée : "+formatDate(directlyObserved[0].time)+
+    " · Affichage de jalons, jamais un accès terminal distant.":
+    data.time?"Conversations synchronisées : "+formatDate(data.time):
     "Aucune conversation publique synchronisée"));
   const refresh=el("button","live-preview-refresh","↻ Actualiser");
   refresh.type="button";
