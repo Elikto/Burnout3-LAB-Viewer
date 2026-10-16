@@ -248,6 +248,7 @@ function technicalFilter(title){
   if(s.includes("carrés"))return "largeur = hauteur";
   if(s.includes("horizontaux"))return "largeur > hauteur";
   if(s.includes("verticaux"))return "hauteur > largeur";
+  if(s.includes("rectangulaires"))return "largeur ≠ hauteur et petit côté ≤ 128 px";
   if(s.includes("compacts"))return "dimension maximale ≤ 128 px";
   if(s.includes("taille moyenne"))return "128 < dimension maximale ≤ 256 px";
   if(s.includes("haute résolution"))return "dimension maximale > 256 px";
