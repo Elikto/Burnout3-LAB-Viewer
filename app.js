@@ -277,9 +277,9 @@ function taskWorkDetails(projectId,task){
   box.append(eta);
   const tech=el("div","work-technical");
   tech.append(el("span","work-heading","PROCESSUS TECHNIQUE DÉTAILLÉ"));
-  const steps=el("ol","technical-steps");
-  for(const line of technicalProcess(projectId,task))steps.append(el("li","",line));
-  tech.append(steps);box.append(tech);
+  const technicalList=el("ol","technical-steps");
+  for(const line of technicalProcess(projectId,task))technicalList.append(el("li","",line));
+  tech.append(technicalList);box.append(tech);
   const summary=el("div","work-summary");
   summary.append(el("span","work-heading","DERNIÈRE ACTION ENREGISTRÉE"));
   const recent=task.actions.timeline.at(-1);
