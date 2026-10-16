@@ -165,3 +165,22 @@ footer{border-top:1px solid var(--border);font-size:10px;color:#7e91ab;display:f
 .live-preview-refresh{border:1px solid #4e6885;border-radius:7px;color:#e0eeff;background:#1e3049;padding:5px 10px;font-size:10px;font-weight:700}
 .live-preview-refresh:hover{background:#2a4461}
 @media(max-width:650px){.live-preview-line{grid-template-columns:1fr 1fr;gap:2px 8px}.live-preview-message{grid-column:1/-1}.live-preview-time{font-size:9px}}
+
+/* Optional direct read-only terminal over SSE. No browser command execution. */
+.live-connect-panel{border:1px solid #364c64;background:#101c2c;border-radius:12px;padding:14px 16px;margin:0 0 18px}
+.live-connect-heading{display:flex;align-items:center;justify-content:space-between;gap:9px;flex-wrap:wrap}
+.live-connect-heading strong{font-size:13px;color:#f0f7ff}
+#live-connection-state{font-size:10px;color:#9eb4cd}
+#live-connection-state[data-state="connected"]{color:#8ee1ba}
+#live-connection-state[data-state="reconnecting"]{color:#eec07f}
+.live-connect-controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;margin:11px 0}
+.live-connect-controls label{color:#aabbcf;font-size:11px}
+.live-connect-controls input{flex:1;min-width:190px;background:#081320;color:#eef5ff;border:1px solid #496078;border-radius:8px;padding:9px 12px;font-size:11px}
+.live-connect-controls button{background:#274361;border:1px solid #567a99;color:#edf7ff;padding:9px 13px;border-radius:8px;font-weight:750;font-size:11px}
+.live-connect-controls button:hover{background:#345678}
+.live-connect-note{margin:0;color:#8ba0b9;font-size:10px;line-height:1.5}
+.live-command .live-preview-message{display:flex;flex-direction:column;gap:3px}
+.live-command .live-preview-message strong{font-family:"Segoe UI",system-ui,sans-serif;font-weight:750}
+.live-command-text{display:block;width:100%;font-size:10px;line-height:1.55;padding:5px 8px;background:#111f32;color:#8de4be;border-left:2px solid #5db994;border-radius:3px;white-space:pre-wrap;overflow-wrap:anywhere}
+.live-command-job{font-size:9px;color:#9baec4}
+@media(max-width:680px){.live-connect-controls{flex-direction:column;align-items:stretch}.live-connect-controls input{width:100%;flex:auto}}
