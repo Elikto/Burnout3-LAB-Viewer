@@ -602,9 +602,24 @@ function renderHome() {
     top.append(identity,el("span","task-state",task?statusName(task.status):"En attente"));
     card.append(top,el("h2","task-name",task?.title||"Aucune tâche synchronisée"));
     const observed=lastConfirmed(task);
-    const action=el("p","compact-action",observed?
-      eventSummary(observed)+" · "+shortDate(observed.time):"Aucune action technique confirmée");
+    const live=(liveFeed[id]||[]).filter(e=>e.job===task?.id);
+    const recentLive=liveState==="connected"?live.at(-1):null;
+    const action=el("p","compact-action",recentLive?
+      "Signal direct : "+recentLive.label+" · "+shortDate(recentLive.time):
+      observed?eventSummary(observed)+" · "+shortDate(observed.time):
+      "Aucune action technique confirmée");
     card.append(action);
+    if(recentLive){
+      const details=el("details","compact-live-details");
+      details.append(el("summary","","Derniers événements du flux · "+live.length));
+      const list=el("ol","compact-timeline-list");
+      for(const e of live.slice(-3).reverse()){
+        const line=el("li","");
+        line.append(el("time","",shortDate(e.time)),el("span","",e.label));
+        list.append(line);
+      }
+      details.append(list);card.append(details);
+    }
     card.append(compactProgress("Tâche",task?.done,task?.total));
     const time=taskETA(id,task,project);
     card.append(el("p","compact-eta","Temps restant : "+time[0]));
