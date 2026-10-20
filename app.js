@@ -99,7 +99,8 @@ function normalizeStatus(doc) {
           total:Number.isInteger(t.total)&&t.total>0?t.total:null,
           next:typeof t.next==="string"?t.next.slice(0,180):"",
           updated_at:typeof t.updated_at==="string"?t.updated_at:null,
-          actions:normalizeActions(t.actions)
+          actions:normalizeActions(t.actions),
+          subtask:normalizeSubtask(t.subtask)
         })),
       latest:latest.filter(x=>x && typeof x==="object" &&
         typeof x.summary==="string" && typeof x.time==="string")
@@ -114,6 +115,13 @@ function normalizeStatus(doc) {
   if (!projects.hd || !projects.pc) return null;
   return {generated_at:typeof doc.generated_at==="string"?doc.generated_at:null,
     projects};
+}
+function normalizeSubtask(raw) {
+  if (!raw || typeof raw !== "object" || Array.isArray(raw)) return null;
+  const done=Number.isInteger(raw.done)&&raw.done>=0?raw.done:null;
+  const total=Number.isInteger(raw.total)&&raw.total>0?raw.total:null;
+  const label=typeof raw.label==="string"?raw.label.slice(0,100):"Sous-tâche";
+  return {label,done,total};
 }
 function normalizeActions(value) {
   const input=value&&typeof value==="object"?value:{};
@@ -221,32 +229,73 @@ function measuredTextureInterval(t){
   gaps.sort((a,b)=>a-b);
   return {minutes:gaps[Math.floor(gaps.length/2)],samples:times.length};
 }
-function taskETA(id,t,p){
-  if(!t)return ["Indisponible","Aucun statut reçu."];
-  if(t.status==="completed")return ["Terminée","Validation enregistrée."];
-  if(t.status==="blocked")return ["Non estimable","Tâche bloquée."];
-  const old=Date.now()-Date.parse(publicStatus?.generated_at||"")>2100000?" Données anciennes.":"";
-  if(t.status==="queued"){
-    const ordered=(p?.tasks||[]).filter(x=>["active","selected","queued"].includes(x.status));
-    const steps=ordered.slice(0,Math.max(0,ordered.indexOf(t))).reduce((n,x)=>n+workCycles(id,x),0);
-    return ["Début théorique ≈ "+durationLabel(Math.max(1,steps)*15),
-      steps+" cycles supposés de 15 min avant cette tâche. Simulation de file, pas une échéance."+old];
-  }
-  if(id==="pc")return ["Planification : 1 à 2 passages (15 à 30 min)",
-    "Hypothèse nominale : une tentative Qwen par passage programmé de 15 min. "+
-    "La génération, la validation et les reprises peuvent dépasser cette projection."+old];
-  const rate=measuredTextureInterval(t);
-  if(rate){
-    const minutes=Math.max(15,rate.minutes)*workCycles(id,t);
-    return ["Reste ≈ "+durationLabel(minutes),
-      "Fourchette indicative : "+durationLabel(minutes*0.8)+" à "+
-      durationLabel(minutes*1.6)+". Estimé avec "+rate.samples+
-      " copies réelles. Le rythme peut changer selon fichiers, GPU, veille."+old];
-  }
-  return ["Hypothèse ≈ "+durationLabel(workCycles(id,t)*15),
-    "Estimation nominale : un traitement par passage de 15 min. Pas de mesure du débit réel."+old];
+function observedRate(projectId, project) {
+  if(projectId!=="hd") return null;
+  const rates=(project?.tasks||[]).map(measuredTextureInterval)
+    .filter(Boolean).map(r=>r.minutes).filter(n=>Number.isFinite(n)&&n>0);
+  if(!rates.length) return null;
+  rates.sort((a,b)=>a-b);
+  return rates[Math.floor(rates.length/2)];
 }
-
+function taskMinutes(projectId, t, project) {
+  if(!t || t.status==="completed") return 0;
+  const rate=observedRate(projectId,project);
+  if(rate===null || t.total===null || t.done===null) return null;
+  return rate*Math.max(0,t.total-t.done);
+}
+function taskETA(id,t,p){
+  if(!t) return ["Indisponible",""];
+  if(t.status==="completed") return ["Terminée",""];
+  if(t.status==="blocked") return ["Bloquée",""];
+  const estimate=taskMinutes(id,t,p);
+  if(estimate===null) return ["Non estimable","Mesures insuffisantes"];
+  if(t.status==="queued"){
+    const before=(p?.tasks||[]).filter(x=>x!==t && ["active","selected","queued"].includes(x.status));
+    const target=(p?.tasks||[]).indexOf(t);
+    const predecessors=before.filter(x=>(p?.tasks||[]).indexOf(x)<target);
+    const durations=predecessors.map(x=>taskMinutes(id,x,p));
+    if(durations.some(x=>x===null)) return ["Durée ≈ "+durationLabel(estimate),"Début indéterminé"];
+    return ["Durée ≈ "+durationLabel(estimate),"Début ≈ "+durationLabel(durations.reduce((a,b)=>a+b,0))];
+  }
+  return ["Reste ≈ "+durationLabel(estimate),"Estimation basée sur traitements mesurés"];
+}
+function confirmedEvents(task){
+  const confirmed=new Set(["texture_started","texture_validated","texture_applied","texture_failed",
+    "validation_passed","validation_failed","plan_saved","model_error","selection_fallback",
+    "context_loaded","plan_validating"]);
+  return (task?.actions?.timeline||[]).filter(e=>confirmed.has(e.kind));
+}
+function eventSummary(e){
+  const labels={
+    texture_started:"PNG : traitement démarré",texture_validated:"PNG vérifié",
+    texture_applied:"PNG HD installé",texture_failed:"Échec du PNG",
+    validation_passed:"Validation réussie",validation_failed:"Échec de validation",
+    plan_saved:"Plan sauvegardé",model_error:"Erreur du modèle",
+    selection_fallback:"Sélection automatique",context_loaded:"Contexte chargé",
+    plan_validating:"Validation en cours"
+  };
+  const summary=(e?.summary||"").trim();
+  if(summary && !/^(?:un traitement de texture a été enregistré|qwen a transmis|une instruction a été envoyée)/i.test(summary))
+    return summary.slice(0,135);
+  return labels[e?.kind]||"Événement confirmé";
+}
+function lastConfirmed(task){
+  return confirmedEvents(task).at(-1)||null;
+}
+function compactProgress(label,done,total){
+  const row=el("div","mini-progress");
+  const valid=Number.isInteger(done)&&done>=0&&Number.isInteger(total)&&total>0;
+  const percent=valid?Math.round(Math.min(done,total)*100/total):null;
+  const cap=el("div","progress-caption");
+  cap.append(el("span","",label),
+    el("strong","",valid?Math.min(done,total)+" / "+total+" · "+percent+" %":"Non mesuré"));
+  const track=el("div","progress-track");
+  const fill=el("div","progress-fill");
+  fill.style.width=percent===null?"0%":percent+"%";
+  track.append(fill);
+  row.append(cap,track);
+  return row;
+}
 function technicalFilter(title){
   const s=(title||"").toLowerCase();
   if(s.includes("carrés"))return "largeur = hauteur";
@@ -365,7 +414,7 @@ function showLiveState(){
     off:"Journal GitHub uniquement · pas de liaison directe",
     opening:"Connexion au relais Windows en cours…",
     connected:"Relais Windows connecté · événements transmis dès leur journalisation",
-    reconnecting:"Relais indisponible · tentative de reconnexion automatique"
+    reconnecting:"Relais indisponible · affichage du dernier relevé public"
   };
   $("live-connection-state").textContent=mode[liveState]||mode.off;
   $("live-connection-state").dataset.state=liveState;
@@ -398,6 +447,7 @@ function connectLive(raw){
   };
   source.onerror=()=>{
     if(liveSource!==source)return;
+    source.close();liveSource=null;
     liveState="reconnecting";showLiveState();renderHome();
   };
   source.onmessage=event=>{
@@ -535,119 +585,100 @@ function renderHome() {
   const status=publicStatus;
   const fresh=Boolean(status)&&!isStale(status.generated_at);
   $("snapshot-label").textContent=status
-    ? "Dernière synchronisation : "+formatDate(status.generated_at)+(fresh?"":" · données anciennes")
-    : "Dernière synchronisation : en attente";
-  $("sidebar-status").textContent=status ?
-    (fresh?"Dernière copie disponible":"Dernier état possiblement ancien"):
-    "En attente des premières données";
+    ?"Dernière synchronisation : "+formatDate(status.generated_at)+(fresh?"":" · données anciennes")
+    :"Dernière synchronisation : en attente";
+  $("sidebar-status").textContent=status?(fresh?"Copie disponible":"Données anciennes"):"En attente";
   $("sync-dot").className="dot"+(status?(fresh?" ready":" stale"):"");
   $("sync-dot-home").className="dot"+(status?(fresh?" ready":" stale"):"");
-
-  // Preserve expanded upcoming-task details during automatic refresh.
-  const expanded=new Set([...$("progress-grid").querySelectorAll("details.future-task[open]")]
-    .map(e=>e.dataset.taskId));
   const cards=document.createDocumentFragment();
-  for(const id of ["hd","pc"]) {
-    const project=status?.projects[id];
-    const task=currentTask(project);
-    const pending=(project?.tasks||[]).filter(t=>t!==task && t.status==="queued");
-    const next=pending[0]||null;
-    const progress=progressValue(task);
-    const card=el("section","progress-card "+id);
-    card.setAttribute("aria-label","Suivi du projet "+PROJECTS[id].title);
+  for(const id of ["hd","pc"]){
+    const project=status?.projects[id],task=currentTask(project);
+    const pending=(project?.tasks||[]).filter(t=>t!==task&&t.status==="queued").slice(0,5);
+    const card=el("section","progress-card compact-card "+id);
+    card.setAttribute("aria-label","Suivi de "+PROJECTS[id].title);
     const top=el("div","progress-card-top");
     const identity=el("div","card-project");
     identity.append(el("span","",id.toUpperCase()),el("strong","",PROJECTS[id].title));
     top.append(identity,el("span","task-state",task?statusName(task.status):"En attente"));
-    card.append(top,el("div","work-heading","TÂCHE PRIORITAIRE"),
-      el("h2","task-name",task?task.title:"Aucune tâche reçue depuis Windows"));
-    const caption=el("div","progress-caption");
-    caption.append(el("span","",progress===null?"Progression non mesurée":"Avancement de la tâche"),
-      el("strong","",progress===null?"—":task.done+" / "+task.total+" · "+progress+" %"));
-    const track=el("div","progress-track");
-    const fill=el("div","progress-fill");
-    fill.style.width=progress===null?"0%":progress+"%";
-    track.append(fill);
-    card.append(caption,track);
-    card.append(createActivityPreview(id,task));
-    if(task && task.status!=="active")card.append(el("p","agent-activity-hint","Tâche assignée, exécution IA non confirmée au dernier relevé."));
-
-
-    card.append(taskWorkDetails(id,task));
-    const upcoming=el("div","next-task-block");
-    upcoming.append(el("span","work-heading","PROCHAINE TÂCHE"),
-      el("strong","next-task-title",next?.title||"Aucune prochaine tâche confirmée"),
-      el("div","queue-count",pending.length>=5 ? pending.length+" prochaines tâches planifiées" : pending.length+" / 5 tâches futures planifiées · réserve à compléter"));
+    card.append(top,el("h2","task-name",task?.title||"Aucune tâche synchronisée"));
+    const observed=lastConfirmed(task);
+    const live=(liveFeed[id]||[]).filter(e=>e.job===task?.id);
+    const recentLive=liveState==="connected"?live.at(-1):null;
+    const action=el("p","compact-action",recentLive?
+      "Signal direct : "+recentLive.label+" · "+shortDate(recentLive.time):
+      observed?eventSummary(observed)+" · "+shortDate(observed.time):
+      "Aucune action technique confirmée");
+    card.append(action);
+    if(recentLive){
+      const details=el("details","compact-live-details");
+      details.append(el("summary","","Derniers événements du flux · "+live.length));
+      const list=el("ol","compact-timeline-list");
+      for(const e of live.slice(-3).reverse()){
+        const line=el("li","");
+        line.append(el("time","",shortDate(e.time)),el("span","",e.label));
+        list.append(line);
+      }
+      details.append(list);card.append(details);
+    }
+    card.append(compactProgress("Tâche",task?.done,task?.total));
+    const time=taskETA(id,task,project);
+    card.append(el("p","compact-eta","Temps restant : "+time[0]));
+    const upcoming=el("section","next-task-block compact-upcoming");
+    upcoming.append(el("span","work-heading","5 PROCHAINES TÂCHES"));
     const list=el("ol","upcoming-list");
-    for(const item of pending.slice(0,8)){
-      const li=el("li","");
-      const details=el("details","future-task");
-      details.dataset.taskId=id+":"+item.id;
-      details.open=expanded.has(details.dataset.taskId);
-      details.append(el("summary","",item.title));
-      const timing=taskETA(id,item,project);
-      details.append(el("p","future-estimate",timing[0]+" — "+timing[1]));
-      const steps=el("ol","technical-steps");
-      for(const stage of technicalProcess(id,item))steps.append(el("li","",stage));
-      details.append(steps);
-      li.append(details);
+    for(const item of pending){
+      const li=el("li","compact-next");
+      li.append(el("span","next-task-title",item.title),
+        el("span","compact-next-time",taskETA(id,item,project)[0]));
       list.append(li);
     }
-    if(pending.length===0)list.append(el("li","queue-empty","Aucune prochaine tâche encore synchronisée"));
+    if(!pending.length)list.append(el("li","queue-empty","Aucune tâche planifiée"));
     upcoming.append(list);
+    card.append(upcoming);
     const controls=el("div","work-controls");
-    const detailButton=el("button","work-open-details","Détails et prochaines actions →");
-    detailButton.type="button";
-    detailButton.addEventListener("click",()=>openTaskDrawer(id,task));
-    const messagesButton=el("button","work-open-messages","Voir les échanges IA de cette tâche ↗");
-    messagesButton.type="button";
-    messagesButton.addEventListener("click",()=>{
-      navigate(id);
-      $("conversation-search").value=task?.id||"";
-      renderConversation();
-    });
-    controls.append(detailButton,messagesButton);
-    card.append(upcoming,controls);
+    const detail=el("button","work-open-details","Détails de la tâche");
+    detail.type="button";detail.addEventListener("click",()=>openTaskDrawer(id,task));
+    const messages=el("button","work-open-messages","Conversation");
+    messages.type="button";messages.addEventListener("click",()=>navigate(id));
+    controls.append(detail,messages);
+    card.append(controls);
     cards.append(card);
   }
   $("progress-grid").replaceChildren(cards);
 }
-function detailElement(projectId,task) {
-  const container=el("div","task-details");
-  if (!task) {
-    container.append(el("p","placeholder","Aucune tâche locale vérifiée. Le système n'invente ni action en cours ni pourcentage."));
+function detailElement(projectId,task){
+  const container=el("div","task-details compact-drawer");
+  if(!task){
+    container.append(el("p","placeholder","Aucune progression vérifiable."));
     return container;
   }
-  const progress=progressValue(task);
-  const stats=el("div","detail-block");
-  stats.append(el("h3","","État vérifié : "+statusName(task.status)));
-  const caption=el("div","progress-caption");
-  caption.append(el("span","",progress===null?"Objectif chiffré inconnu":"Objectif de cette tâche uniquement"),
-    el("strong","",progress===null?"Non mesuré":task.done+" / "+task.total+" · "+progress+" %"));
-  const track=el("div","progress-track");
-  const fill=el("div","progress-fill");fill.style.width=progress===null?"0%":progress+"%";track.append(fill);
-  stats.append(caption,track);
-  container.append(stats);
-  const block=(title,items,kind)=>{
-    const part=el("section","detail-block");
-    part.append(el("h3","",title));
-    const ul=el("ul");
-    for(const item of items.length?items:["Aucun événement de cette catégorie confirmé."]) {
-      const li=el("li");
-      li.append(el("span","step-icon "+kind,kind==="done"?"✓":kind==="next"?"→":"·"),
-        el("span","",item));
-      ul.append(li);
+  container.append(compactProgress("Tâche complète",task.done,task.total));
+  const stage=task.subtask;
+  container.append(compactProgress("Sous-tâche : "+(stage?.label||"non renseignée"),stage?.done,stage?.total));
+  const latest=lastConfirmed(task);
+  const summary=el("section","compact-current");
+  summary.append(el("span","work-heading","DERNIÈRE ACTION CONFIRMÉE"),
+    el("p","",latest?eventSummary(latest):"Aucune action technique confirmée"));
+  if(latest)summary.append(el("time","compact-stamp",formatDate(latest.time)));
+  container.append(summary);
+  const eta=taskETA(projectId,task,publicStatus?.projects[projectId]);
+  container.append(el("p","compact-eta","Temps restant : "+eta[0]));
+  const events=confirmedEvents(task).slice(-5).reverse();
+  const timeline=el("section","compact-timeline");
+  timeline.append(el("span","work-heading","DERNIÈRES OPÉRATIONS"));
+  if(events.length){
+    const list=el("ol","compact-timeline-list");
+    for(const event of events){
+      const row=el("li","");
+      row.append(el("time","",shortDate(event.time)),el("span","",eventSummary(event)));
+      list.append(row);
     }
-    part.append(ul);
-    container.append(part);
-  };
-  block("Actions déjà réalisées",task.actions.done,"done");
-  block("Dernière action signalée",task.actions.current?[task.actions.current]:[],"current");
-  block("Ce qui reste à faire",task.actions.remaining,"next");
-  container.append(taskWorkDetails(projectId,task));
-  const next=nextTask(publicStatus?.projects[projectId],task);
-  if(next) container.append(el("p","drawer-warning","Prochaine tâche : "+next));
-  if(task.updated_at) container.append(el("p","drawer-warning","Dernier signal enregistré : "+formatDate(task.updated_at)+". Cela ne prouve pas qu'un traitement est actuellement en cours."));
+    timeline.append(list);
+  }else timeline.append(el("p","compact-muted","Aucune opération technique enregistrée."));
+  container.append(timeline);
+  if(task.status==="blocked")container.append(el("p","compact-error","Tâche bloquée"));
+  if(publicStatus?.generated_at&&isStale(publicStatus.generated_at))
+    container.append(el("p","compact-muted","Dernière sauvegarde ancienne · état actuel non vérifié"));
   return container;
 }
 function openTaskDrawer(projectId,task) {
@@ -714,44 +745,75 @@ function renderProgressView(id) {
   }
   $("project-progress-content").replaceChildren(wrapper);
 }
-function renderConversation() {
+function compactConversation(records,projectId) {
+  const grouped=new Map();
+  for(const event of records){
+    const qwenHistory=projectId==="hd"&&
+      ["model_request","model_response"].includes(event.kind)&&event.role==="qwen";
+    const key=qwenHistory?"qwen:"+event.job:
+      "event:"+event.job+"\u0000"+event.role+"\u0000"+event.kind+"\u0000"+event.message;
+    if(!grouped.has(key))grouped.set(key,{kind:qwenHistory?"qwen_history":"event",records:[],last:0});
+    const group=grouped.get(key);
+    group.records.push(event);
+    const time=Date.parse(event.time);
+    group.last=Math.max(group.last,Number.isFinite(time)?time:0);
+  }
+  return [...grouped.values()].sort((a,b)=>a.last-b.last);
+}
+function renderConversation(){
   const p=archive?.projects.find(p=>p.id===activeView);
   $("locked-panel").classList.add("hidden");
   $("conversation-stream").classList.remove("hidden");
-  $("conversation-meta").textContent=!archive ?
-    "Archive publique indisponible · vérifier la synchronisation GitHub Pages":
-    !p ? "Projet introuvable dans les messages publiés":
-    !p.configured ? "Journal local non transmis pour ce projet · vérifier son agent Windows":
-    "Lecture libre · "+p.events.length+" messages publiés · sauvegarde "+formatDate(archive.generated_at);
+  $("conversation-meta").textContent=!archive?
+    "Archive publique indisponible":!p?"Projet introuvable":!p.configured?
+    "Journal non transmis":"Archive du "+formatDate(archive.generated_at);
   if(!archive||!p){
-    $("conversation-stream").replaceChildren(el("p","placeholder",
-      "La conversation publique sera visible après la première publication autorisée depuis Windows."));
+    $("conversation-stream").replaceChildren(el("p","placeholder","Aucune conversation publiée."));
     return;
   }
   const needle=$("conversation-search").value.trim().toLocaleLowerCase("fr-FR");
   const matches=p.events.filter(x=>x&&ROLES.has(x.role)&&typeof x.message==="string"
     &&typeof x.job==="string"&&(x.message.toLocaleLowerCase("fr-FR").includes(needle)||
       x.job.toLocaleLowerCase("fr-FR").includes(needle)));
-  const events=matches.slice(-visibleMessageCount);
+  const groups=compactConversation(matches,activeView);
+  const visible=groups.slice(-visibleMessageCount);
   const frag=document.createDocumentFragment();
-  if(!events.length)frag.append(el("p","placeholder",p.configured?
-    "Aucun message correspondant dans la dernière sauvegarde.":
-    "Aucun journal de conversation n'a encore été transmis pour ce projet. Vérifier que son agent Windows est installé et qu'il a réellement exécuté des tâches."));
-  if(matches.length>visibleMessageCount){
-    const more=el("button","older-messages",
-      "Afficher les "+Math.min(250,matches.length-visibleMessageCount)+" messages précédents ("+
-      (matches.length-visibleMessageCount)+" plus anciens)");
-    more.type="button";
-    more.addEventListener("click",()=>{visibleMessageCount+=250;renderConversation();});
+  if(!visible.length)frag.append(el("p","placeholder","Aucun message correspondant."));
+  if(groups.length>visibleMessageCount){
+    const more=el("button","older-messages","Afficher les événements précédents");
+    more.type="button";more.addEventListener("click",()=>{visibleMessageCount+=250;renderConversation()});
     frag.append(more);
   }
-  for(const e of events) {
-    const article=el("article","message role-"+e.role);
-    const avatar=el("div","avatar",e.role==="qwen"?"Q":e.role==="chatgpt"?"GPT":"IA");
+  for(const group of visible){
+    const last=group.records.at(-1),count=group.records.length;
+    const article=el("article","message role-"+last.role);
+    const avatar=el("div","avatar",last.role==="qwen"?"Q":last.role==="chatgpt"?"GPT":"IA");
     const body=el("div","message-main");
     const meta=el("div","meta");
-    meta.append(el("time","",formatDate(e.time)),el("span","",e.job),el("span","",e.kind||""));
-    body.append(el("strong","sender",labelRole(e.role)),meta,el("div","bubble",e.message));
+    meta.append(el("time","",formatDate(last.time)),el("span","",last.job));
+    body.append(el("strong","sender",labelRole(last.role)),meta);
+    if(group.kind==="qwen_history"){
+      const details=el("details","conversation-archive");
+      details.append(el("summary","",
+        "Anciens échanges Qwen · "+count+" événements (repliés)"));
+      const stack=el("div","conversation-archive-items");
+      for(const e of group.records){
+        const item=el("div","archive-item");
+        item.append(el("time","",shortDate(e.time)+" · "+e.kind),
+          el("pre","bubble",e.message));
+        stack.append(item);
+      }
+      details.append(stack);body.append(details);
+    }else{
+      body.append(el("div","bubble",last.message));
+      if(count>1){
+        const details=el("details","conversation-archive");
+        details.append(el("summary","","× "+count+" événements identiques · voir les dates"));
+        const stack=el("div","conversation-archive-items");
+        for(const e of group.records)stack.append(el("time","archive-item",formatDate(e.time)));
+        details.append(stack);body.append(details);
+      }
+    }
     article.append(avatar,body);frag.append(article);
   }
   $("conversation-stream").replaceChildren(frag);
