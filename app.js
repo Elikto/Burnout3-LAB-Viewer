@@ -613,7 +613,7 @@ function renderHome() {
     const list=el("ol","upcoming-list");
     for(const item of pending){
       const li=el("li","compact-next");
-      li.append(el("span","",item.title),
+      li.append(el("span","next-task-title",item.title),
         el("span","compact-next-time",taskETA(id,item,project)[0]));
       list.append(li);
     }
